@@ -1,0 +1,53 @@
+id = "werkbank"
+name = "Werkbank"
+version = "0.1.0"
+min_herdr_version = "0.9.5"
+description = "Personal Herdr workbench: Inbox, sidebar PR/CI + stalled labels, Linear launch and presets for Mastra Code agents"
+platforms = ["linux", "macos"]
+
+[[build]]
+command = ["cargo", "build", "--release"]
+
+# Starts the always-on watcher daemon for this server's session; returns at once.
+[[startup]]
+command = ["target/release/werkbank", "daemon-start"]
+
+[[panes]]
+id = "inbox"
+title = "Inbox"
+placement = "tab"
+command = ["target/release/werkbank", "inbox"]
+
+[[actions]]
+id = "open-inbox"
+title = "Open Inbox"
+command = ["target/release/werkbank", "open-inbox"]
+
+[[panes]]
+id = "worktree-prompt"
+title = "New worktree + Mastra Code"
+placement = "popup"
+width = 70
+height = 8
+command = ["target/release/werkbank", "worktree-prompt"]
+
+[[actions]]
+id = "launch-tab"
+title = "New tab: Mastra Code"
+command = ["target/release/werkbank", "launch-tab"]
+
+[[actions]]
+id = "launch-worktree"
+title = "New worktree + Mastra Code"
+command = ["target/release/werkbank", "launch-worktree"]
+
+[[actions]]
+id = "setup-worktree"
+title = "Set up this worktree (copy local files, install, build)"
+contexts = ["workspace"]
+command = ["target/release/werkbank", "setup-worktree"]
+
+# Copies local files into new worktrees and opens a background setup tab.
+[[events]]
+on = "worktree.created"
+command = ["target/release/werkbank", "worktree-created"]

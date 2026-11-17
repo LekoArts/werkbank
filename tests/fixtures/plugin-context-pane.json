@@ -1,0 +1,12 @@
+{
+  "workspace_id": "w1",
+  "workspace_label": "proofws",
+  "workspace_cwd": "/private/tmp/tower-proof-1794352613/plain",
+  "tab_id": "w1:t1",
+  "tab_label": "1",
+  "focused_pane_id": "w1:p1",
+  "focused_pane_cwd": "/private/tmp/tower-proof-1794352613/plain",
+  "focused_pane_status": "unknown",
+  "invocation_source": "api",
+  "correlation_id": "plugin-pane"
+}

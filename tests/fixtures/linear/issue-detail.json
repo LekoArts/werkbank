@@ -1,0 +1,43 @@
+{
+ "data": {
+  "viewer": {
+   "id": "user-viewer",
+   "name": "User Viewer"
+  },
+  "issue": {
+   "id": "issue-1",
+   "identifier": "ENG-1",
+   "title": "Backlog item",
+   "url": "https://linear.app/example/issue/ENG-1/x",
+   "branchName": "user/eng-1-x",
+   "priority": 0,
+   "state": {
+    "id": "st-backlog",
+    "name": "Backlog",
+    "type": "backlog"
+   },
+   "team": {
+    "id": "team-1111",
+    "key": "ENG"
+   },
+   "project": {
+    "name": "Documentation"
+   },
+   "assignee": {
+    "id": "user-viewer",
+    "name": "User One"
+   },
+   "description": "Write the guide.\n\n- step one\n- step two",
+   "labels": {
+    "nodes": [
+     {
+      "name": "docs"
+     },
+     {
+      "name": "good first issue"
+     }
+    ]
+   }
+  }
+ }
+}

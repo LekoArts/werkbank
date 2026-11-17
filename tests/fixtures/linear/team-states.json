@@ -1,0 +1,52 @@
+{
+ "data": {
+  "team": {
+   "states": {
+    "nodes": [
+     {
+      "id": "st-todo",
+      "name": "Todo",
+      "type": "unstarted",
+      "position": 1
+     },
+     {
+      "id": "st-review",
+      "name": "In Review",
+      "type": "started",
+      "position": 1002
+     },
+     {
+      "id": "st-dup",
+      "name": "Duplicate",
+      "type": "duplicate",
+      "position": 5
+     },
+     {
+      "id": "st-backlog",
+      "name": "Backlog",
+      "type": "backlog",
+      "position": 0
+     },
+     {
+      "id": "st-prog",
+      "name": "In Progress",
+      "type": "started",
+      "position": 2
+     },
+     {
+      "id": "st-done",
+      "name": "Done",
+      "type": "completed",
+      "position": 3
+     },
+     {
+      "id": "st-canceled",
+      "name": "Canceled",
+      "type": "canceled",
+      "position": 4
+     }
+    ]
+   }
+  }
+ }
+}

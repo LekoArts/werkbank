@@ -1,0 +1,14 @@
+{
+ "data": {
+  "a0": {
+   "identifier": "ENG-325",
+   "title": "\"Widget export\": CLI flag",
+   "description": "New CLI capabilities",
+   "url": "https://linear.app/example/issue/ENG-325/widget-export-cli",
+   "branchName": "user/eng-325-widget-export-cli",
+   "state": {
+    "name": "Done"
+   }
+  }
+ }
+}

@@ -1,0 +1,395 @@
+{
+ "data": {
+  "viewer": {
+   "login": "me"
+  },
+  "repository": {
+   "pullRequest": {
+    "id": "PR_kwDOMgKwqs8AAAABOhePMA",
+    "number": 30148,
+    "title": "fix(factory): recover stuck environment builds and rebuild on saved changes",
+    "url": "https://github.com/mastra-ai/mastra/pull/30148",
+    "isDraft": false,
+    "viewerCanUpdate": true,
+    "author": {
+     "__typename": "User",
+     "login": "user2"
+    },
+    "repository": {
+     "nameWithOwner": "mastra-ai/mastra"
+    },
+    "headRefName": "feat/branch-30148",
+    "headRepository": {
+     "nameWithOwner": "mastra-ai/mastra"
+    },
+    "baseRefName": "main",
+    "reviewDecision": "CHANGES_REQUESTED",
+    "mergeStateStatus": "BLOCKED",
+    "mergeable": "MERGEABLE",
+    "updatedAt": "2026-11-12T01:52:29Z",
+    "body": "## Description\n\nThis change makes the widget report its outcome.\n\nIt also updates the docs.\n\n- [x] Tests added",
+    "reviewRequests": {
+     "nodes": [
+      {
+       "requestedReviewer": {
+        "__typename": "User",
+        "login": "user4"
+       }
+      },
+      {
+       "requestedReviewer": {
+        "__typename": "User",
+        "login": "user5"
+       }
+      },
+      {
+       "requestedReviewer": {
+        "__typename": "User",
+        "login": "user6"
+       }
+      },
+      {
+       "requestedReviewer": {
+        "__typename": "User",
+        "login": "user7"
+       }
+      },
+      {
+       "requestedReviewer": {
+        "__typename": "User",
+        "login": "user8"
+       }
+      },
+      {
+       "requestedReviewer": {
+        "__typename": "Team",
+        "name": "core"
+       }
+      }
+     ]
+    },
+    "latestReviews": {
+     "nodes": [
+      {
+       "author": {
+        "__typename": "Bot",
+        "login": "review-bot"
+       },
+       "state": "COMMENTED",
+       "commit": {
+        "oid": "2d3295e00b218a0d3abf01bcbe33f2b1deb060f1"
+       }
+      },
+      {
+       "author": {
+        "__typename": "Bot",
+        "login": "review-bot"
+       },
+       "state": "CHANGES_REQUESTED",
+       "commit": {
+        "oid": "2d3295e00b218a0d3abf01bcbe33f2b1deb060f1"
+       }
+      },
+      {
+       "author": {
+        "__typename": "Bot",
+        "login": "review-bot"
+       },
+       "state": "COMMENTED",
+       "commit": {
+        "oid": "2d3295e00b218a0d3abf01bcbe33f2b1deb060f1"
+       }
+      }
+     ]
+    },
+    "head": {
+     "nodes": [
+      {
+       "commit": {
+        "statusCheckRollup": {
+         "state": "FAILURE",
+         "contexts": {
+          "nodes": [
+           {
+            "__typename": "CheckRun",
+            "name": "Docs E2E tests",
+            "status": "COMPLETED",
+            "conclusion": "FAILURE"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "labeler",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Detect docs changes",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "check-major-bump",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "check-major-bump",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Detect code changes",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Detect code changes",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Check for deleted pages without redirects",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Deployer E2E coverage",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "New packages exist on npm",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate redirects",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Build",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate changeset packages",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Lint docs",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Detect affected tests",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Lint",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Unit and E2E Tests / UNIT Test (Shard ${{ matrix.shard }})",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate build outputs",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate examples packages.json",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Unit and E2E Tests / Affected UNIT Test",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Unit and E2E Tests / E2E Test (${{ matrix.project }})",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate AGENTS.md files",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Unit and E2E Tests / Durable Stream Tests",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate package READMEs",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Unit and E2E Tests / Merge Test Reports",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate peer dependencies",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "E2E Tests",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Validate package.json files",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Mastra Code E2E / Mastra Code E2E",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Mastra Code E2E / Mastra Code web host OM scenarios",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Combined Store Tests",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Workspace Tests",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Memory Tests",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Notify Slack of release PR status",
+            "status": "COMPLETED",
+            "conclusion": "SKIPPED"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "CodeRabbit",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Contributor trust",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Factory Review / tests",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Socket Security: Project Report",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Socket Security: Pull Request Alerts",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Superagent Security Scan",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "CheckRun",
+            "name": "Vercel Preview Comments",
+            "status": "COMPLETED",
+            "conclusion": "SUCCESS"
+           },
+           {
+            "__typename": "StatusContext",
+            "context": "Vercel – mastra-docs-1.x",
+            "state": "SUCCESS"
+           },
+           {
+            "__typename": "StatusContext",
+            "context": "Vercel – mastra-playground-ui",
+            "state": "SUCCESS"
+           },
+           {
+            "__typename": "StatusContext",
+            "context": "Workspace Cloud Tests",
+            "state": "SUCCESS"
+           }
+          ]
+         }
+        }
+       }
+      }
+     ]
+    },
+    "commits": {
+     "totalCount": 1,
+     "nodes": [
+      {
+       "commit": {
+        "oid": "2d3295e00b218a0d3abf01bcbe33f2b1deb060f1"
+       }
+      }
+     ]
+    },
+    "viewerLatestReview": null
+   }
+  }
+ }
+}

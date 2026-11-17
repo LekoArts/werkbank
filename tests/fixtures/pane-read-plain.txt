@@ -1,0 +1,4 @@
+/home/user/code/github/agent-orchestrator/.mastracode/plans/herdr-tower.proof/fake-bin/mastracode session working
+
+tower-proof-1794352581-repo
+➜ /home/user/code/github/agent-orchestrator/.mastracode/plans/herdr-tower.proof/fake-bin/mastracode session working

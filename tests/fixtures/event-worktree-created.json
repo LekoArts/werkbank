@@ -1,0 +1,33 @@
+{
+  "event": "worktree_created",
+  "data": {
+    "type": "worktree_created",
+    "workspace": {
+      "workspace_id": "w2",
+      "number": 2,
+      "label": "probe-br",
+      "focused": false,
+      "pane_count": 1,
+      "tab_count": 1,
+      "active_tab_id": "w2:t1",
+      "agent_status": "unknown",
+      "worktree": {
+        "repo_key": "/tmp/repo/.git",
+        "repo_name": "repo",
+        "repo_root": "/tmp/repo",
+        "checkout_path": "/home/user/.herdr/worktrees/repo/probe-br",
+        "is_linked_worktree": true
+      }
+    },
+    "worktree": {
+      "path": "/home/user/.herdr/worktrees/repo/probe-br",
+      "branch": "probe-br",
+      "is_bare": false,
+      "is_detached": false,
+      "is_prunable": false,
+      "is_linked_worktree": true,
+      "open_workspace_id": "w2",
+      "label": "repo"
+    }
+  }
+}

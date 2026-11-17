@@ -1,0 +1,658 @@
+{
+ "data": {
+  "viewer": {
+   "login": "me"
+  },
+  "mine": {
+   "issueCount": 2,
+   "nodes": [
+    {
+     "id": "PR_mine1",
+     "number": 40001,
+     "title": "Own PR with failing checks",
+     "url": "https://github.com/mastra-ai/mastra/pull/40001",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "User",
+      "login": "me"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-40001",
+     "headRepository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "reviewDecision": null,
+     "mergeStateStatus": "UNKNOWN",
+     "mergeable": "MERGEABLE",
+     "updatedAt": "2026-11-11T19:42:34Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "FAILURE"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": []
+     },
+     "commits": {
+      "totalCount": 1,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "2226e908e515a6c10c60f2972a9702d58962985e"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": null
+    },
+    {
+     "id": "PR_mine2",
+     "number": 40002,
+     "title": "Own approved PR",
+     "url": "https://github.com/mastra-ai/mastra/pull/40002",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "User",
+      "login": "me"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-40002",
+     "headRepository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "reviewDecision": "APPROVED",
+     "mergeStateStatus": "CLEAN",
+     "mergeable": "MERGEABLE",
+     "updatedAt": "2026-11-11T19:23:19Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "SUCCESS"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": [
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "74b80e685176cac011e4a2c73247857525fd6e7d"
+        }
+       },
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "APPROVED",
+        "commit": {
+         "oid": "74b80e685176cac011e4a2c73247857525fd6e7d"
+        }
+       }
+      ]
+     },
+     "commits": {
+      "totalCount": 5,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "952231d37e47b4d89cbebd4b9b101cea81f8457e"
+        }
+       },
+       {
+        "commit": {
+         "oid": "f990df03b1139f1aa0ad8679468cc8b18b032d7f"
+        }
+       },
+       {
+        "commit": {
+         "oid": "d2e044efd620595a035c1e05a37b157baa25e56c"
+        }
+       },
+       {
+        "commit": {
+         "oid": "67a1e9200beca8cfb80d1996f1c4070d731ce0ef"
+        }
+       },
+       {
+        "commit": {
+         "oid": "74b80e685176cac011e4a2c73247857525fd6e7d"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": null
+    }
+   ]
+  },
+  "assigned": {
+   "issueCount": 70,
+   "nodes": [
+    {
+     "id": "PR_kwDOMgKwqs8AAAABOhooYg",
+     "number": 30151,
+     "title": "fix(core): follow session permission rules for AgentController tool approval",
+     "url": "https://github.com/mastra-ai/mastra/pull/30151",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "User",
+      "login": "user1"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-30151",
+     "headRepository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "reviewDecision": "APPROVED",
+     "mergeStateStatus": "UNKNOWN",
+     "mergeable": "CONFLICTING",
+     "updatedAt": "2026-11-12T03:07:06Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "SUCCESS"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": [
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "1accaa789a2023625bc3cec6f3d15e848a46487a"
+        }
+       },
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "01a3c33814fbfe0ed6358526e4389f59e40e2e0d"
+        }
+       },
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "APPROVED",
+        "commit": {
+         "oid": "1accaa789a2023625bc3cec6f3d15e848a46487a"
+        }
+       },
+       {
+        "author": {
+         "__typename": "User",
+         "login": "me"
+        },
+        "state": "APPROVED",
+        "commit": {
+         "oid": "434f4379917e236189ed6a2efe41370d015f56f1"
+        }
+       }
+      ]
+     },
+     "commits": {
+      "totalCount": 5,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "33cb2dbe6c9c1a74624b40444a66bcee6fcab067"
+        }
+       },
+       {
+        "commit": {
+         "oid": "57bc0657db29b9845a28f4d6afc82d3e14a95bb0"
+        }
+       },
+       {
+        "commit": {
+         "oid": "434f4379917e236189ed6a2efe41370d015f56f1"
+        }
+       },
+       {
+        "commit": {
+         "oid": "01a3c33814fbfe0ed6358526e4389f59e40e2e0d"
+        }
+       },
+       {
+        "commit": {
+         "oid": "1accaa789a2023625bc3cec6f3d15e848a46487a"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": {
+      "state": "APPROVED",
+      "commit": {
+       "oid": "434f4379917e236189ed6a2efe41370d015f56f1"
+      }
+     }
+    },
+    {
+     "id": "PR_kwDOMgKwqs8AAAABOhePMA",
+     "number": 30148,
+     "title": "fix(factory): recover stuck environment builds and rebuild on saved changes",
+     "url": "https://github.com/mastra-ai/mastra/pull/30148",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "User",
+      "login": "user2"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-30148",
+     "headRepository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "reviewDecision": "CHANGES_REQUESTED",
+     "mergeStateStatus": "UNKNOWN",
+     "mergeable": "MERGEABLE",
+     "updatedAt": "2026-11-12T01:52:29Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "SUCCESS"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": [
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "2d3295e00b218a0d3abf01bcbe33f2b1deb060f1"
+        }
+       },
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "CHANGES_REQUESTED",
+        "commit": {
+         "oid": "2d3295e00b218a0d3abf01bcbe33f2b1deb060f1"
+        }
+       },
+       {
+        "author": {
+         "__typename": "User",
+         "login": "me"
+        },
+        "state": "CHANGES_REQUESTED",
+        "commit": {
+         "oid": "0000000000000000000000000000000000000000"
+        }
+       }
+      ]
+     },
+     "commits": {
+      "totalCount": 1,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "2d3295e00b218a0d3abf01bcbe33f2b1deb060f1"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": {
+      "state": "CHANGES_REQUESTED",
+      "commit": {
+       "oid": "0000000000000000000000000000000000000000"
+      }
+     }
+    },
+    {
+     "id": "PR_kwDOMgKwqs8AAAABOhdT7Q",
+     "number": 30147,
+     "title": "fix(cli): honor MASTRA_ORG_ID for API-token env and db commands",
+     "url": "https://github.com/mastra-ai/mastra/pull/30147",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "Bot",
+      "login": "review-bot"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-30147",
+     "headRepository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "reviewDecision": "REVIEW_REQUIRED",
+     "mergeStateStatus": "UNKNOWN",
+     "mergeable": "MERGEABLE",
+     "updatedAt": "2026-11-12T05:13:00Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "SUCCESS"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": [
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "3ef968be5e45d1c42da06e9986c2e252bef541e4"
+        }
+       },
+       {
+        "author": {
+         "__typename": "User",
+         "login": "me"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "8b892f05cd5de0f3d829876949fab61397d9236b"
+        }
+       }
+      ]
+     },
+     "commits": {
+      "totalCount": 2,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "3ef968be5e45d1c42da06e9986c2e252bef541e4"
+        }
+       },
+       {
+        "commit": {
+         "oid": "8b892f05cd5de0f3d829876949fab61397d9236b"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": {
+      "state": "COMMENTED",
+      "commit": {
+       "oid": "8b892f05cd5de0f3d829876949fab61397d9236b"
+      }
+     }
+    },
+    {
+     "id": "PR_kwDOMgKwqs8AAAABOdmBIA",
+     "number": 30096,
+     "title": "feat(observability): sort spans by model and provider",
+     "url": "https://github.com/mastra-ai/mastra/pull/30096",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "User",
+      "login": "user3"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-30096",
+     "headRepository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "reviewDecision": "CHANGES_REQUESTED",
+     "mergeStateStatus": "UNKNOWN",
+     "mergeable": "MERGEABLE",
+     "updatedAt": "2026-11-11T19:42:34Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "SUCCESS"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": [
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "2226e908e515a6c10c60f2972a9702d58962985e"
+        }
+       },
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "CHANGES_REQUESTED",
+        "commit": {
+         "oid": "2226e908e515a6c10c60f2972a9702d58962985e"
+        }
+       },
+       {
+        "author": {
+         "__typename": "User",
+         "login": "user4"
+        },
+        "state": "APPROVED",
+        "commit": {
+         "oid": "2226e908e515a6c10c60f2972a9702d58962985e"
+        }
+       }
+      ]
+     },
+     "commits": {
+      "totalCount": 1,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "2226e908e515a6c10c60f2972a9702d58962985e"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": null
+    },
+    {
+     "id": "PR_kwDOMgKwqs8AAAABOczNNw",
+     "number": 30088,
+     "title": "feat(observability): export span-local originating error counts",
+     "url": "https://github.com/mastra-ai/mastra/pull/30088",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "User",
+      "login": "user3"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-30088",
+     "headRepository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "reviewDecision": "APPROVED",
+     "mergeStateStatus": "UNKNOWN",
+     "mergeable": "CONFLICTING",
+     "updatedAt": "2026-11-11T19:23:19Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "FAILURE"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": [
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "74b80e685176cac011e4a2c73247857525fd6e7d"
+        }
+       },
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "APPROVED",
+        "commit": {
+         "oid": "74b80e685176cac011e4a2c73247857525fd6e7d"
+        }
+       }
+      ]
+     },
+     "commits": {
+      "totalCount": 5,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "952231d37e47b4d89cbebd4b9b101cea81f8457e"
+        }
+       },
+       {
+        "commit": {
+         "oid": "f990df03b1139f1aa0ad8679468cc8b18b032d7f"
+        }
+       },
+       {
+        "commit": {
+         "oid": "d2e044efd620595a035c1e05a37b157baa25e56c"
+        }
+       },
+       {
+        "commit": {
+         "oid": "67a1e9200beca8cfb80d1996f1c4070d731ce0ef"
+        }
+       },
+       {
+        "commit": {
+         "oid": "74b80e685176cac011e4a2c73247857525fd6e7d"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": null
+    },
+    {
+     "id": "PR_kwDOMgKwqs8AAAABOaPuQw",
+     "number": 30067,
+     "title": "feat(mongodb): harden bring-your-own collections and add hybrid query reranking",
+     "url": "https://github.com/mastra-ai/mastra/pull/30067",
+     "isDraft": false,
+     "viewerCanUpdate": true,
+     "author": {
+      "__typename": "Bot",
+      "login": "review-bot"
+     },
+     "repository": {
+      "nameWithOwner": "mastra-ai/mastra"
+     },
+     "headRefName": "feat/branch-30067",
+     "headRepository": {
+      "nameWithOwner": "user99/mastra"
+     },
+     "reviewDecision": "REVIEW_REQUIRED",
+     "mergeStateStatus": "UNKNOWN",
+     "mergeable": "MERGEABLE",
+     "updatedAt": "2026-11-11T19:24:22Z",
+     "head": {
+      "nodes": [
+       {
+        "commit": {
+         "statusCheckRollup": {
+          "state": "SUCCESS"
+         }
+        }
+       }
+      ]
+     },
+     "latestReviews": {
+      "nodes": [
+       {
+        "author": {
+         "__typename": "Bot",
+         "login": "review-bot"
+        },
+        "state": "COMMENTED",
+        "commit": {
+         "oid": "0d79d5762b5388f939e4541b90045aeea6d9a61f"
+        }
+       }
+      ]
+     },
+     "commits": {
+      "totalCount": 1,
+      "nodes": [
+       {
+        "commit": {
+         "oid": "0d79d5762b5388f939e4541b90045aeea6d9a61f"
+        }
+       }
+      ]
+     },
+     "viewerLatestReview": null
+    }
+   ]
+  }
+ }
+}

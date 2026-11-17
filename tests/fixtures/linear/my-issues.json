@@ -1,0 +1,200 @@
+{
+ "data": {
+  "viewer": {
+   "id": "user-viewer",
+   "assignedIssues": {
+    "pageInfo": {
+     "hasNextPage": false
+    },
+    "nodes": [
+     {
+      "id": "issue-1",
+      "identifier": "ENG-1",
+      "title": "Backlog item",
+      "url": "https://linear.app/example/issue/ENG-1/x",
+      "branchName": "user/eng-1-x",
+      "priority": 0,
+      "state": {
+       "id": "st-backlog",
+       "name": "Backlog",
+       "type": "backlog"
+      },
+      "team": {
+       "id": "team-1111",
+       "key": "ENG"
+      },
+      "project": {
+       "name": "Documentation"
+      },
+      "assignee": {
+       "id": "user-viewer",
+       "name": "User One"
+      },
+      "labels": {
+       "nodes": [
+        {
+         "name": "docs"
+        },
+        {
+         "name": "good first issue"
+        }
+       ]
+      }
+     },
+     {
+      "id": "issue-2",
+      "identifier": "ENG-2",
+      "title": "Urgent todo",
+      "url": "https://linear.app/example/issue/ENG-2/x",
+      "branchName": "user/eng-2-x",
+      "priority": 1,
+      "state": {
+       "id": "st-todo",
+       "name": "Todo",
+       "type": "unstarted"
+      },
+      "team": {
+       "id": "team-1111",
+       "key": "ENG"
+      },
+      "project": null,
+      "assignee": {
+       "id": "user-viewer",
+       "name": "User One"
+      },
+      "labels": {
+       "nodes": []
+      }
+     },
+     {
+      "id": "issue-3",
+      "identifier": "ENG-3",
+      "title": "Low todo",
+      "url": "https://linear.app/example/issue/ENG-3/x",
+      "branchName": "user/eng-3-x",
+      "priority": 4,
+      "state": {
+       "id": "st-todo",
+       "name": "Todo",
+       "type": "unstarted"
+      },
+      "team": {
+       "id": "team-1111",
+       "key": "ENG"
+      },
+      "project": {
+       "name": "Docs"
+      },
+      "assignee": {
+       "id": "user-viewer",
+       "name": "User One"
+      },
+      "labels": {
+       "nodes": []
+      }
+     },
+     {
+      "id": "issue-4",
+      "identifier": "ENG-4",
+      "title": "Being built",
+      "url": "https://linear.app/example/issue/ENG-4/x",
+      "branchName": "user/eng-4-x",
+      "priority": 2,
+      "state": {
+       "id": "st-prog",
+       "name": "In Progress",
+       "type": "started"
+      },
+      "team": {
+       "id": "team-1111",
+       "key": "ENG"
+      },
+      "project": null,
+      "assignee": {
+       "id": "user-viewer",
+       "name": "User One"
+      },
+      "labels": {
+       "nodes": []
+      }
+     },
+     {
+      "id": "issue-5",
+      "identifier": "ENG-5",
+      "title": "Awaiting review",
+      "url": "https://linear.app/example/issue/ENG-5/x",
+      "branchName": "user/eng-5-x",
+      "priority": 3,
+      "state": {
+       "id": "st-review",
+       "name": "In Review",
+       "type": "started"
+      },
+      "team": {
+       "id": "team-1111",
+       "key": "ENG"
+      },
+      "project": null,
+      "assignee": {
+       "id": "user-viewer",
+       "name": "User One"
+      },
+      "labels": {
+       "nodes": []
+      }
+     },
+     {
+      "id": "issue-6",
+      "identifier": "ENG-6",
+      "title": "Needs triage",
+      "url": "https://linear.app/example/issue/ENG-6/x",
+      "branchName": null,
+      "priority": 0,
+      "state": {
+       "id": "st-triage",
+       "name": "Triage",
+       "type": "triage"
+      },
+      "team": {
+       "id": "team-1111",
+       "key": "ENG"
+      },
+      "project": null,
+      "assignee": {
+       "id": "user-viewer",
+       "name": "User One"
+      },
+      "labels": {
+       "nodes": []
+      }
+     },
+     {
+      "id": "issue-7",
+      "identifier": "ENG-7",
+      "title": "No priority todo",
+      "url": "https://linear.app/example/issue/ENG-7/x",
+      "branchName": "user/eng-7-x",
+      "priority": 0,
+      "state": {
+       "id": "st-todo",
+       "name": "Todo",
+       "type": "unstarted"
+      },
+      "team": {
+       "id": "team-1111",
+       "key": "ENG"
+      },
+      "project": null,
+      "assignee": {
+       "id": "user-viewer",
+       "name": "User One"
+      },
+      "labels": {
+       "nodes": []
+      }
+     }
+    ]
+   }
+  }
+ }
+}

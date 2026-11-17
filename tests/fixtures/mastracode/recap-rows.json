@@ -1,0 +1,22 @@
+[
+ {
+  "id": "11111111-2222-4333-8444-555555555555",
+  "title": "Widget report outcomes",
+  "updatedAt": "2026-11-11T10:40:00.000Z",
+  "project": "/home/user/code/widgets",
+  "obs": "ed the release notes so each change is listed once per section.\n* 🟡 (10:02–10:04) Typecheck produced no errors. Two widget tests failed because fixtures now include excerpts; agent updated assertions.\n</observation-group>\n\n--- message boundary (2026-11-11T09:30:10.045Z) ---\n\n<observation-group id=\"2c0d8add6fd8490d\" range=\"msg-1:msg-2\">\nDate: Nov 11, 2026\n* 🔴 (10:13) User approved fixing the repeated heading text and pushing both changes to PR #82.\n* ✅ (10:14) Fixed heading rendering: a group shows its most common page once. Added a regression test.\n  * -> The re-rendered report shows the Knowledge page once.\n* 🟡 (10:14) Read-only rehearsal checked 13 PRs and made no writes.\n* 🔴 (10:30) User requested deployment (\"deploy\"). Deployment has not yet been run.\n</observation-group>",
+  "lastObservedAt": "2026-11-11T10:30:10.045Z",
+  "tasks": "[{\"id\": \"t1\", \"content\": \"Write the report parser\", \"status\": \"completed\", \"activeForm\": \"Writing the report parser\"}, {\"id\": \"t2\", \"content\": \"Render grouped headings\", \"status\": \"in_progress\", \"activeForm\": \"Rendering grouped headings\"}, {\"id\": \"t3\", \"content\": \"Deploy the service\", \"status\": \"pending\", \"activeForm\": \"Deploying the service\"}]",
+  "goal": "# Widget report outcomes and connected knowledge\n\n## Goal\n\nThe widget report knows what happened to each delivered finding even when the ticket has no comments, and its store becomes connected and honest about staleness. The widget report knows what happened to each delivered finding even when the ticket has no comments, and its store becomes connected and honest about staleness. The widget report knows what happened to each delivered finding even when the ticket has no comments, and its store becomes connected and honest about staleness. The widget report knows what happened to each delivered"
+ },
+ {
+  "id": "66666666-7777-4888-9999-000000000000",
+  "title": "Dark mode toggle",
+  "updatedAt": "2026-11-11T11:10:00.000Z",
+  "project": "/home/user/code/widgets",
+  "obs": "<observation-group id=\"aa11bb22cc33dd44\" range=\"msg-3:msg-4\">\nDate: Nov 11, 2026\n* 🔴 (11:05) User asked to add a dark mode toggle to the settings page.\n* 🟡 (11:06) Agent found the theme provider in `src/theme.ts`.\n* ✅ (11:09) Toggle added and unit tests pass.\n</observation-group>",
+  "lastObservedAt": "2026-11-11T11:09:30.000Z",
+  "tasks": null,
+  "goal": null
+ }
+]

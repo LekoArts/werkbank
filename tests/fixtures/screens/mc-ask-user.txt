@@ -1,0 +1,32 @@
+mastracode
+
+tower-proof-1794353970/scratch
+➜ mastracode
+
+    ⣠⣶⣶⣄  ⣠⣶⣶⣄      Mastra Code v0.49.0
+    ⢻⣿⣿⣿  ⣿⣿⣿⡟
+  ⢀⣀ ⠈⠻⣿⣄⣠⣿⠟⢻⣷⣀⡀    Project: scratch
+ ⢰⣿⣿⣿⡄ ⣿⣿⣿⣿ ⢸⣿⣿⣿⡆   Resource ID: scratch-075ec4238474
+ ⠈⠻⠿⠟⠁ ⠙⠿⠿⠋ ⠈⠻⠿⠟⠁
+
+   shift+tab  cycle modes ·  /help  info & shortcuts
+
+
+  Use the ask_user tool exactly once to ask me: Pick a color — with options red and blue. Do nothing else.
+
+
+ Created thread: 62c3c466-9731-4153-b092-4017dd6089e0
+
+▎ Pick a color
+▎
+▎ ❯ red
+▎   blue
+▎   ✎ Custom response...
+▎
+▎ ↑↓ to navigate · Enter to select · Esc to skip
+
+ • working  3s · esc to interrupt
+
+ →
+
+ build · anthropic/claude-opus-5-5 · 0.1/120k 0% · /private/tmp/tower-proof-1794353970/scratch

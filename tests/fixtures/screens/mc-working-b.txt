@@ -1,0 +1,30 @@
+mastracode
+
+tower-proof-1794352932/scratch
+➜ mastracode
+
+    ⣠⣶⣶⣄  ⣠⣶⣶⣄      Mastra Code v0.49.0
+    ⢻⣿⣿⣿  ⣿⣿⣿⡟
+  ⢀⣀ ⠈⠻⣿⣄⣠⣿⠟⢻⣷⣀⡀    Project: scratch
+ ⢰⣿⣿⣿⡄ ⣿⣿⣿⣿ ⢸⣿⣿⣿⡆   Resource ID: scratch-2accf8a02916
+ ⠈⠻⠿⠟⠁ ⠙⠿⠿⠋ ⠈⠻⠿⠟⠁
+
+   shift+tab  cycle modes ·  /help  info & shortcuts
+
+
+  Run the shell command 'sleep 40' and then say done.
+
+
+ Created thread: 37e72033-0ab0-489e-976a-87f74f5ac50f
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ $ /private/tmp/tower-proof-1794352932/scratch                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ⠏ Sleeping for 40 seconds                                                10s │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ • working  10s · esc to interrupt
+
+ →
+
+ build · anthropic/claude-opus-5-5 · 0/120k 0% · /private/tmp/tower-proof-1794352932/scratch
