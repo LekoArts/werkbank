@@ -14,7 +14,7 @@ mkdir -p "$out"
 exe=$root/target/release/werkbank
 [ -x "$exe" ] || { echo "build first: cargo build --release" >&2; exit 1; }
 
-asciinema rec --headless --overwrite --window-size 110x32 \
+asciinema rec --headless --overwrite --window-size 110x34 \
     --command "python3 '$root/demo/inbox.py' '$exe'" \
     "$out/inbox.cast" >/dev/null
 

@@ -13,6 +13,7 @@ import fcntl
 import json
 import os
 import pty
+import queue
 import select
 import shutil
 import signal
@@ -397,34 +398,62 @@ def keep_daemon(state_dir, stop):
 
 # ---------------------------------------------------------------- tour
 
-UP, DOWN, ESC, ENTER, TAB = "k", "j", "\x1b", "\r", "\t"
+UP, DOWN, ESC, ENTER, TAB, SPACE = "k", "j", "\x1b", "\r", "\t", " "
 RIGHT, LEFT = "\x1b[C", "\x1b[D"
+KEY_NAMES = {UP: "k", DOWN: "j", ESC: "esc", ENTER: "⏎", TAB: "tab", SPACE: "space",
+             RIGHT: "→", LEFT: "←"}
 
-# (seconds to wait first, keys); typed text goes one character at a time.
+# (seconds to wait first, keys, what the caption says they do).
+# "type:…" goes one character at a time.
 TOUR = [
-    (3.5, None),
-    (0.7, DOWN), (0.7, DOWN), (0.7, DOWN), (0.7, DOWN), (0.7, DOWN), (0.7, DOWN),
-    (0.7, RIGHT), (1.0, RIGHT), (1.0, RIGHT), (1.0, LEFT), (0.7, LEFT), (0.7, LEFT),
-    (1.0, "k"), (0.3, "k"), (0.3, "k"), (0.3, "k"), (0.3, "k"), (0.3, "k"), (0.7, DOWN),
-    (1.2, TAB), (0.6, "type:Replayed it. Carry on with the migration."), (1.5, ESC),
-    (1.5, "2"), (2.5, DOWN), (0.7, UP), (0.8, ENTER), (3.0, DOWN), (0.4, DOWN), (0.4, DOWN),
-    (1.5, "f"), (1.5, DOWN), (0.8, ENTER), (3.0, "n"), (1.0, ESC),
-    (1.5, "3"), (2.5, DOWN), (0.8, " "), (0.7, DOWN), (0.7, " "), (1.0, "f"), (3.5, "n"),
-    (1.0, ENTER), (3.0, ESC),
-    (1.5, "4"), (2.0, DOWN), (0.7, DOWN), (0.7, DOWN), (2.0, "1"), (3.0, None),
+    (3.5, None, None),
+    (0.7, DOWN, "next agent"), (0.7, DOWN, "next agent"), (0.7, DOWN, "next agent"),
+    (0.7, DOWN, "next agent"), (0.7, DOWN, "next agent"), (0.7, DOWN, "next agent"),
+    (0.7, RIGHT, "next stage"), (1.0, RIGHT, "next stage"), (1.0, RIGHT, "next stage"),
+    (1.0, LEFT, "previous stage"), (0.7, LEFT, "previous stage"), (0.7, LEFT, "all stages"),
+    (1.0, UP, "previous agent"), (0.3, UP, "previous agent"), (0.3, UP, "previous agent"),
+    (0.3, UP, "previous agent"), (0.3, UP, "previous agent"), (0.3, UP, "previous agent"),
+    (0.7, DOWN, "the stalled agent"),
+    (1.2, TAB, "reply without leaving the Inbox"),
+    (0.6, "type:Replayed it. Carry on with the migration.", "type the reply"),
+    (1.5, ESC, "drop it"),
+    (1.5, "2", "PRs tab"), (2.5, DOWN, "next PR"), (0.7, UP, "previous PR"),
+    (0.8, ENTER, "open the PR"), (3.0, DOWN, "scroll"), (0.4, DOWN, "scroll"), (0.4, DOWN, "scroll"),
+    (1.5, "f", "send to Factory"), (1.5, DOWN, "pick a prompt"), (0.8, ENTER, "preview the message"),
+    (3.0, "n", "don't send"), (1.0, ESC, "back to the list"),
+    (1.5, "3", "Issues tab"), (2.5, DOWN, "next issue"), (0.8, SPACE, "mark"),
+    (0.7, DOWN, "next issue"), (0.7, SPACE, "mark"), (1.0, "f", "both to Factory, one PR"),
+    (3.5, "n", "don't send"), (1.0, ENTER, "open the issue"), (3.0, ESC, "back to the list"),
+    (1.5, "4", "Factory tab"), (2.0, DOWN, "next prompt"), (0.7, DOWN, "next prompt"),
+    (0.7, DOWN, "next prompt"), (2.0, "1", "back to Agents"), (3.0, None, None),
 ]
 
+# The footer's key-pill colours.
+PILL = "\x1b[1;38;2;137;180;250;48;2;49;50;68m"
+TEXT = "\x1b[22;38;2;166;173;200;49m"
+DIM = "\x1b[38;2;88;91;112m"
 
-def tour(fd, finished):
-    for wait, keys in TOUR:
+
+def caption_bytes(row, cols, keys, says):
+    """The key caption on `row`, drawn without moving the Inbox's cursor or colours."""
+    line = f"\x1b7\x1b[{row - 1};1H\x1b[0m\x1b[2K{DIM}{'─' * cols}\x1b[{row};1H\x1b[2K"
+    if keys:
+        line += f"  {PILL} {keys} {TEXT} {says}"
+    return (line + "\x1b[0m\x1b8").encode()
+
+
+def tour(fd, finished, caption):
+    for wait, keys, says in TOUR:
         time.sleep(wait)
         if keys is None:
             continue
         if keys.startswith("type:"):
+            caption.put(("abc…", says))
             for ch in keys[5:]:
                 os.write(fd, ch.encode())
                 time.sleep(0.055)
         else:
+            caption.put((KEY_NAMES.get(keys, keys), says))
             # A lone ESC needs a gap before the next key, or it reads as alt+key.
             os.write(fd, keys.encode())
     # Quit off camera, so the recording ends on the Inbox, not a blank screen.
@@ -451,24 +480,37 @@ def main():
             "HERDR_PLUGIN_CONFIG_DIR": config_dir,
             "WERKBANK_MASTRA_DB": os.path.join(tmp, "none.db"),
         }
-        cols, rows = shutil.get_terminal_size((110, 32))
+        # The Inbox gets all but the bottom two rows; those show the keys pressed.
+        cols, rows = shutil.get_terminal_size((110, 34))
         pid, fd = pty.fork()
         if pid == 0:
             os.execve(exe, [exe, "inbox"], env)
-        fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+        fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows - 2, cols, 0, 0))
         finished = threading.Event()
-        threading.Thread(target=tour, args=(fd, finished), daemon=True).start()
+        captions = queue.Queue()
+        threading.Thread(target=tour, args=(fd, finished, captions), daemon=True).start()
+        out = sys.stdout.fileno()
+        shown, dirty = (None, None), True
         while True:
             try:
-                r, _, _ = select.select([fd], [], [], 0.1)
+                r, _, _ = select.select([fd], [], [], 0.02)
                 if r:
                     chunk = os.read(fd, 65536)
                     if not chunk:
                         break
                     if not finished.is_set():
-                        os.write(sys.stdout.fileno(), chunk)
+                        os.write(out, chunk)
+                    # A full clear wipes the caption too.
+                    dirty |= b"\x1b[2J" in chunk or b"\x1b[?1049h" in chunk
+                    continue
             except OSError:
                 break
+            # Only between Inbox frames, so the caption never splits an escape sequence.
+            while not captions.empty():
+                shown, dirty = captions.get(), True
+            if dirty and not finished.is_set():
+                os.write(out, caption_bytes(rows, cols, *shown))
+                dirty = False
             done, _ = os.waitpid(pid, os.WNOHANG)
             if done:
                 break
