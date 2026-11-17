@@ -3,6 +3,8 @@
 A [Herdr](https://herdr.dev) plugin for running many Mastra Code agents in
 parallel without losing track of them. One Rust binary, macOS and Linux.
 
+https://github.com/user-attachments/assets/f22293d6-9162-4795-a7e5-5e5b479a872a
+
 ## What you get
 
 - **Inbox**: a Herdr tab with four views.
