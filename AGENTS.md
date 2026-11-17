@@ -6,6 +6,8 @@ Before you commit, run: cargo fmt --check, cargo clippy --all-targets -- -D warn
 
 Unit tests with FakeRunner and the recorded fixtures in tests/fixtures are the proof for almost every change. Keep cargo test under about 2 seconds: no real sleeps or timeouts longer than a few hundred milliseconds. Live Herdr proofs are slow and block the user, so run one only when a change alters live Herdr behavior, and only for the scenario that covers it. Do it in a throwaway Herdr session (herdr session attach <name>), never the user's live one, and poll for the expected state rather than sleeping. The owner's proof harness lives in the gitignored .mastracode/plans/herdr-tower.proof/demo.sh <scenario>; when it exists, never run demo.sh all unless asked.
 
+demo/record.sh re-records the README's Inbox video from made-up data (demo/inbox.py); update the tour there when the Inbox's keys or tabs change.
+
 To check the live session quickly, read ~/.local/state/herdr/plugins/werkbank/state-default.json or run target/release/werkbank status on it.
 
 Ask before adding a crate. The current ones are anyhow, crossterm, ratatui, serde and serde_json.
