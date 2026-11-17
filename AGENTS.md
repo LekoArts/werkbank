@@ -4,7 +4,7 @@ Commit straight to main with conventional commits (feat, fix, perf, refactor, do
 
 Before you commit, run: cargo fmt --check, cargo clippy --all-targets -- -D warnings, cargo test, cargo build --release. The release build also hands the running daemon over to the new binary, so a rebuild is how a change goes live. An open Inbox keeps the old binary until it is reopened.
 
-Unit tests with FakeRunner and the recorded fixtures in tests/fixtures are the proof for almost every change. Keep cargo test under about 2 seconds: no real sleeps or timeouts longer than a few hundred milliseconds. Live Herdr proofs (.mastracode/plans/herdr-tower.proof/demo.sh <scenario>) are slow and block the user, so run one only when a change alters live Herdr behavior, and run only the scenario that covers it. Never run demo.sh all unless asked. In proofs, poll with wait_for rather than fixed sleeps.
+Unit tests with FakeRunner and the recorded fixtures in tests/fixtures are the proof for almost every change. Keep cargo test under about 2 seconds: no real sleeps or timeouts longer than a few hundred milliseconds. Live Herdr proofs are slow and block the user, so run one only when a change alters live Herdr behavior, and only for the scenario that covers it. Do it in a throwaway Herdr session (herdr session attach <name>), never the user's live one, and poll for the expected state rather than sleeping. The owner's proof harness lives in the gitignored .mastracode/plans/herdr-tower.proof/demo.sh <scenario>; when it exists, never run demo.sh all unless asked.
 
 To check the live session quickly, read ~/.local/state/herdr/plugins/werkbank/state-default.json or run target/release/werkbank status on it.
 

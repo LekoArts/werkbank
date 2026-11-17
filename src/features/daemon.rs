@@ -1261,7 +1261,9 @@ mod tests {
         })
         .unwrap());
         assert_eq!(spawned, ["s"]);
-        let _held = acquire(&Paths::new(&dir, "s").lock(), Duration::ZERO)
+        // Other tests fork daemons (`spawn_daemon`'s pre_exec forces fork), and a
+        // child forked while `lock_held` briefly held the lock keeps it until exec.
+        let _held = acquire(&Paths::new(&dir, "s").lock(), Duration::from_secs(1))
             .unwrap()
             .unwrap();
         assert!(!start_with(Some("s"), "", dir.to_str().unwrap(), |_| panic!("held")).unwrap());
