@@ -650,6 +650,21 @@ fn exe() -> Result<PathBuf> {
     Ok(std::env::current_exe()?.canonicalize()?)
 }
 
+/// Setup for a worktree Werkbank opened itself (`herdr worktree open` fires
+/// no `worktree.created`): copy, then the setup tab in the background.
+pub fn after_open(t: &Target) -> Option<String> {
+    let run = || -> Result<()> {
+        let env = SetupEnv::from_env()?;
+        let herdr = Herdr::with_bin(RealRunner::default(), env.herdr_bin.clone())
+            .for_session(env.session.clone());
+        if let Some(job) = prepare(&herdr.runner, &env, t)?.job {
+            dispatch(&herdr, &env, t, &job, &exe()?, false)?;
+        }
+        Ok(())
+    };
+    run().err().map(|_| copy_notice(&t.branch))
+}
+
 /// The `worktree-created` event hook.
 pub fn run_hook() -> Result<()> {
     let env = SetupEnv::from_env()?;

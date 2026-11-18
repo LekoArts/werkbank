@@ -22,6 +22,8 @@ use crate::features::inbox::prs::{self, PrData};
 use crate::features::inbox::stall::{self, StallRecord, StallTracker};
 use crate::features::inbox::ui::Tab;
 use crate::features::launch::issue::{self, ReadyWait, RepoChoice};
+use crate::features::launch::pr::{self, PrCheckout};
+use crate::features::setup;
 use crate::integrations::github::{
     self, gh_lookup_batch, probe_branch, BranchKey, PrCache, PrState, BATCH,
 };
@@ -1182,6 +1184,8 @@ pub struct Actions<R: Runner> {
     issues_fetched_at: Option<Instant>,
     pub issue_detail: Option<IssueDetailView>,
     pub states: Option<StatesView>,
+    /// Where PR worktrees go, and the setup run on a fresh same-repo one.
+    worktrees: (PathBuf, pr::Setup),
 }
 
 fn stop_guard(stop: Arc<AtomicBool>) -> impl Fn() -> Result<()> {
@@ -1203,16 +1207,6 @@ fn start_refusal(issue: &MyIssue, viewer_id: &str) -> Option<String> {
         Some(a) if a.id != viewer_id => Some(format!("it is assigned to {}", a.name)),
         _ => None,
     }
-}
-
-/// A PR branch's worktree: already open in a workspace, or just made.
-enum PrCheckout {
-    Open(prs::Checkout),
-    Made {
-        pane: String,
-        path: String,
-        note: String,
-    },
 }
 
 impl<R: Runner> Actions<R> {
@@ -1249,6 +1243,11 @@ impl<R: Runner> Actions<R> {
             issues_fetched_at: None,
             issue_detail: None,
             states: None,
+            worktrees: if cfg!(test) {
+                (PathBuf::from("/wt"), |_| None)
+            } else {
+                (pr::worktrees_dir(), setup::after_open)
+            },
         }
     }
 
@@ -1533,7 +1532,10 @@ impl<R: Runner> Actions<R> {
                 self.herdr.workspace_focus(&c.workspace_id)?;
                 Ok(format!("#{number}: went to {}", c.label))
             }
-            PrCheckout::Made { note, .. } => Ok(note),
+            PrCheckout::Made { path, setup, .. } => Ok(match setup {
+                Some(n) => format!("#{number}: worktree {path} · {n}"),
+                None => format!("#{number}: worktree {path}"),
+            }),
         }
     }
 
@@ -1564,8 +1566,9 @@ impl<R: Runner> Actions<R> {
         Ok(format!("#{number}: agent started in {path} ({pane})"))
     }
 
-    /// The open worktree of the PR's branch, else fetches the branch in the
-    /// repo's main checkout and creates a worktree from it.
+    /// The open worktree of the PR's branch, else `gh pr checkout --worktree`
+    /// from the repo's main checkout. A missing `head_repo` (deleted fork)
+    /// counts as a fork.
     fn pr_checkout(
         &self,
         repo: &str,
@@ -1574,14 +1577,13 @@ impl<R: Runner> Actions<R> {
         number: u64,
         guard: Guard,
     ) -> Result<PrCheckout> {
-        if !head_repo.is_some_and(|h| h.eq_ignore_ascii_case(repo)) {
-            anyhow::bail!("#{number} comes from a fork; no worktree");
-        }
-        if crate::core::herdr::check_branch(head).is_err() {
-            anyhow::bail!("#{number}: unusable branch name");
-        }
+        let pr = pr::PrHead {
+            number,
+            head: head.to_string(),
+            fork: !head_repo.is_some_and(|h| h.eq_ignore_ascii_case(repo)),
+        };
         let checkouts = prs::checkouts(&self.herdr, guard)?;
-        if let Some(c) = prs::checkout_of(&checkouts, repo, head_repo, head) {
+        if let Some(c) = pr::open_checkout(&checkouts, repo, &pr) {
             return Ok(PrCheckout::Open(c.clone()));
         }
         let main = checkouts
@@ -1590,38 +1592,16 @@ impl<R: Runner> Actions<R> {
             .ok_or_else(|| {
                 anyhow::anyhow!("#{number}: no open workspace has a checkout of {repo}")
             })?;
-        guard()?;
-        let out = self.herdr.runner.run(
-            &["git", "-C", &main.path, "fetch", "origin", head],
-            None,
-            None,
-        )?;
-        if !out.success() {
-            anyhow::bail!(
-                "git fetch origin {head}: {}",
-                out.stderr.lines().next().unwrap_or("").trim()
-            );
-        }
-        let label = format!("#{number}");
-        guard()?;
-        let since = std::time::SystemTime::now();
-        let wt = self.herdr.worktree_create_at(
+        let (dir, setup) = &self.worktrees;
+        pr::checkout(
+            &self.herdr,
+            &checkouts,
             &main.path,
-            head,
-            &format!("origin/{head}"),
-            &label,
-            true,
-        )?;
-        let made = format!("#{number}: worktree {}", wt.checkout_path);
-        let note = match crate::features::setup::after_create(&wt.checkout_path, head, since) {
-            Some(n) => format!("{made} · {n}"),
-            None => made,
-        };
-        Ok(PrCheckout::Made {
-            pane: wt.root_pane_id,
-            path: wt.checkout_path,
-            note,
-        })
+            repo,
+            &pr,
+            (dir, *setup),
+            guard,
+        )
     }
 
     pub fn with_linear_key(mut self, key: Option<String>) -> Self {
@@ -3865,15 +3845,37 @@ pub(crate) mod tests {
         });
     }
 
+    /// `gh pr checkout` and `herdr worktree open` answer for PR #7.
+    fn gh_made(a: &Actions<FakeRunner>) {
+        let gh = pr::checkout_argv("o/r", 7, "/wt/main/feat-7");
+        let gh: Vec<&str> = gh.iter().map(String::as_str).collect();
+        a.herdr.runner.ok(&gh, Some("/c/main"), "").ok(
+            &[
+                "herdr",
+                "worktree",
+                "open",
+                "--cwd",
+                "/c/main",
+                "--path",
+                "/wt/main/feat-7",
+                "--label",
+                "#7",
+                "--focus",
+            ],
+            None,
+            include_str!("../../../tests/fixtures/worktree-open.json"),
+        );
+    }
+
     #[test]
-    fn worktree_for_a_fork_pr_is_refused_before_any_call() {
+    fn a_fork_pr_gets_a_worktree_but_no_automatic_setup() {
         let mut a = pr_actions(None);
+        gh_made(&a);
         open_wt(&mut a, "someone/r");
         assert_eq!(
             a.notice.as_deref(),
-            Some("#7 comes from a fork; no worktree")
+            Some("#7: worktree /wt/r/feat-7 · fork, setup skipped: run setup-worktree once you trust it")
         );
-        assert!(a.herdr.runner.argvs().is_empty());
     }
 
     #[test]
@@ -3915,51 +3917,20 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn a_new_worktree_fetches_then_creates_from_origin_with_the_label() {
-        {
-            let label = "#7";
-            let mut a = pr_actions(None);
-            a.herdr.runner.ok(
-                &["git", "-C", "/c/main", "fetch", "origin", "feat/7"],
-                None,
-                "",
-            );
-            let create = [
-                "herdr",
-                "worktree",
-                "create",
-                "--cwd",
-                "/c/main",
-                "--branch",
-                "feat/7",
-                "--base",
-                "origin/feat/7",
-                "--label",
-                label,
-                "--focus",
-            ];
-            a.herdr.runner.ok(
-                &create,
-                None,
-                include_str!("../../../tests/fixtures/worktree-create.json"),
-            );
-            open_wt(&mut a, "o/r");
-            let calls = a.herdr.runner.argvs();
-            let fetch = calls
-                .iter()
-                .position(|c| c.ends_with("fetch origin feat/7"));
-            let made = calls.iter().position(|c| *c == create.join(" "));
-            assert!(
-                fetch.is_some() && made.is_some() && fetch < made,
-                "{calls:?}"
-            );
-            assert!(!calls.iter().any(|c| c.contains("--trust-repository")));
-            assert!(
-                a.notice.as_deref().unwrap().starts_with("#7: worktree "),
-                "{:?}",
-                a.notice
-            );
-        }
+    fn a_new_worktree_comes_from_gh_pr_checkout_then_herdr_opens_it() {
+        let mut a = pr_actions(None);
+        gh_made(&a);
+        open_wt(&mut a, "o/r");
+        assert_eq!(a.notice.as_deref(), Some("#7: worktree /wt/r/feat-7"));
+        let calls = a.herdr.runner.argvs();
+        let gh = calls.iter().position(|c| c.starts_with("gh pr checkout 7"));
+        let open = calls
+            .iter()
+            .position(|c| c.starts_with("herdr worktree open"));
+        assert!(gh.is_some() && gh < open, "{calls:?}");
+        assert!(!calls
+            .iter()
+            .any(|c| c.contains("fetch") || c.contains("worktree create")));
     }
 
     fn start_pr(a: &mut Actions<FakeRunner>, pane: &str) {
@@ -4032,32 +4003,8 @@ pub(crate) mod tests {
     #[test]
     fn s_without_a_worktree_makes_one_and_starts_in_its_root_pane() {
         let mut a = pr_actions(None);
-        a.herdr
-            .runner
-            .ok(
-                &["git", "-C", "/c/main", "fetch", "origin", "feat/7"],
-                None,
-                "",
-            )
-            .ok(
-                &[
-                    "herdr",
-                    "worktree",
-                    "create",
-                    "--cwd",
-                    "/c/main",
-                    "--branch",
-                    "feat/7",
-                    "--base",
-                    "origin/feat/7",
-                    "--label",
-                    "#7",
-                    "--focus",
-                ],
-                None,
-                include_str!("../../../tests/fixtures/worktree-create.json"),
-            );
-        start_pr(&mut a, "w2:p1");
+        gh_made(&a);
+        start_pr(&mut a, "w3:p1");
         let notice = a.notice.clone().unwrap();
         assert!(notice.starts_with("#7: agent started in "), "{notice}");
         assert!(!a

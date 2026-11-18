@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/f22293d6-9162-4795-a7e5-5e5b479a872a
 - **Notifications** for stalled agents and failed CI.
 - **Worktree setup**: every new Herdr worktree gets your git-ignored `.env` and local settings copied in, then install and build run in a background tab.
 - **Safe cleanup** of merged-PR worktrees. It refuses on anything unpushed, dirty or still in use.
-- **Launchers**: a new tab with Mastra Code, or a new worktree with Mastra Code.
+- **Launchers**: a new tab with Mastra Code, or a new worktree with Mastra Code on a branch or any PR (number or URL, forks too).
 
 A background daemon (one per Herdr session) does the watching, so tokens and
 notifications work with the Inbox closed.
@@ -151,7 +151,19 @@ An empty list skips setup. Copied files are git-ignored, untracked, under
 - env and secret files: `.env*`, `.envrc`, `.dev.vars*`, `.npmrc`, `.yarnrc.yml`, `*.tfvars`, Rails keys
 - local settings: `.claude/settings.local.json`, `CLAUDE.local.md`, `.vscode/`, `.idea/`
 
-For a worktree that already exists, run the `setup-worktree` action.
+For a worktree that already exists, run the `setup-worktree` action. Fork PR
+worktrees get no automatic setup, so a stranger's install scripts never run
+next to your secrets; run `setup-worktree` once you trust the code.
+
+### Worktree from a PR
+
+The new-worktree popup (`werkbank.launch-worktree`) takes a branch name, a PR
+number (`123`, `#123`) or a PR URL. A PR is checked out with `gh pr checkout`
+into a new worktree in Herdr's worktree directory, and Mastra Code starts there.
+Any PR of the focused repo works, forks included. For a fork, gh points the
+branch's push at the fork, so you can push to it if the author allows edits by
+maintainers. An open worktree of the PR is focused instead. `origin` must fetch
+all branches, which is git's default.
 
 ## Using the Inbox
 
@@ -190,7 +202,7 @@ description.
 | `s` | Start a local agent on the PR's worktree with a picked prompt (Review PR, Fix CI, Address review, or your own). It opens a new tab if the worktree is already open |
 | `f` | The same picker, sent to Factory |
 | `R` | Rerun the failed jobs of the head commit's failed GitHub Actions runs |
-| `w` | Go to the PR's worktree, or create one (not for forks) |
+| `w` | Go to the PR's worktree, or create one with `gh pr checkout` |
 | `o` | Open in the browser |
 
 ### Issues
@@ -228,8 +240,8 @@ URL first.
 - Recaps lag the conversation: Mastra Code writes memory in batches.
 - Factory posts are not retried. Factory picks the repo itself, so a batch that
   spans repos goes to the wrong one.
-- Worktree setup runs every repo's install and build scripts, including on PR
-  branches you check out, with no trust list. Those scripts run as you: they
+- Worktree setup runs every repo's install and build scripts, including on
+  same-repo PR branches you check out, with no trust list. Those scripts run as you: they
   can read the secret files setup copied into the worktree and anything else
   you can, including Werkbank's `.env`. Werkbank only keeps `LINEAR_API_KEY`
   and `SLACK_USER_TOKEN` out of their environment. Set `"commands": []` for

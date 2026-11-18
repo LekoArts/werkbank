@@ -1,5 +1,6 @@
 //! Launch presets: a new Mastra Code tab, and a new worktree + Mastra Code
-//! (branch name typed into the `worktree-prompt` popup). Neither sends a prompt.
+//! (a branch, PR number or PR URL typed into the `worktree-prompt` popup).
+//! Neither sends a prompt.
 
 use std::path::Path;
 use std::time::Duration;
@@ -15,6 +16,8 @@ use serde::Deserialize;
 
 use crate::core::herdr::{Herdr, Sound, WorktreeInfo};
 use crate::core::runner::Runner;
+use crate::features::inbox::prs;
+use crate::features::launch::{issue, pr};
 use crate::features::setup;
 
 /// The parts of `HERDR_PLUGIN_CONTEXT_JSON` the presets use. Herdr only adds
@@ -103,15 +106,6 @@ pub fn repo_root<R: Runner>(runner: &R, ctx: &Context) -> Result<String> {
     }
 }
 
-/// Trimmed branch name; empty input is refused.
-pub fn branch_input(raw: &str) -> Result<String> {
-    let branch = raw.trim();
-    if branch.is_empty() {
-        bail!("type a branch name");
-    }
-    Ok(branch.to_string())
-}
-
 /// Focused worktree on `branch` (an existing local branch is checked out) with
 /// `mastracode` started in its root pane. No prompt is sent.
 /// Waits briefly for the `worktree.created` hook's copy (never for install/build).
@@ -122,6 +116,39 @@ pub fn create_worktree<R: Runner>(herdr: &Herdr<R>, repo_root: &str, branch: &st
         let _ = herdr.notify("Werkbank setup", &notice, Sound::None);
     }
     herdr.pane_run(&wt.root_pane_id, "mastracode")
+}
+
+/// Focused worktree of PR `number` of the repo at `repo_root`, made by
+/// `gh pr checkout`, with `mastracode` started in it; an open one is focused.
+/// `url_repo` is the repo a pasted URL names: it must be this one.
+pub fn create_pr_worktree<R: Runner>(
+    herdr: &Herdr<R>,
+    repo_root: &str,
+    number: u64,
+    url_repo: Option<&str>,
+    dirs: (&Path, pr::Setup),
+) -> Result<()> {
+    let repo = issue::origin_repo(&herdr.runner, repo_root)
+        .ok_or_else(|| anyhow!("{repo_root} has no GitHub origin"))?;
+    if let Some(u) = url_repo.filter(|u| !u.eq_ignore_ascii_case(&repo)) {
+        bail!("that PR is in {u}; this repo is {repo}");
+    }
+    let no_guard = || Ok(());
+    let head = pr::view(&herdr.runner, &repo, number)?;
+    let checkouts = prs::checkouts(herdr, &no_guard)?;
+    match pr::checkout(herdr, &checkouts, repo_root, &repo, &head, dirs, &no_guard)? {
+        pr::PrCheckout::Open(c) => herdr.workspace_focus(&c.workspace_id),
+        pr::PrCheckout::Made { pane, setup, .. } => {
+            if let Some(notice) = setup {
+                let _ = herdr.notify(
+                    "Werkbank setup",
+                    &format!("#{number}: {notice}"),
+                    Sound::None,
+                );
+            }
+            herdr.pane_run(&pane, "mastracode")
+        }
+    }
 }
 
 struct Prompt {
@@ -135,7 +162,7 @@ struct Prompt {
 enum Step {
     Stay,
     Exit,
-    Create(String),
+    Create(pr::Target),
 }
 
 impl Prompt {
@@ -146,8 +173,8 @@ impl Prompt {
         match code {
             KeyCode::Esc => Step::Exit,
             KeyCode::Char('c') if mods.contains(KeyModifiers::CONTROL) => Step::Exit,
-            KeyCode::Enter => match branch_input(&self.input) {
-                Ok(branch) => Step::Create(branch),
+            KeyCode::Enter => match pr::target(&self.input) {
+                Ok(target) => Step::Create(target),
                 Err(e) => {
                     self.error = Some(e.to_string());
                     Step::Stay
@@ -189,7 +216,7 @@ impl Prompt {
             }
             Ok(repo) => {
                 frame.render_widget(Line::raw(format!("repo: {repo}")), rows[0]);
-                frame.render_widget(Line::raw(format!("branch: {}_", self.input)), rows[1]);
+                frame.render_widget(Line::raw(format!("branch or PR: {}_", self.input)), rows[1]);
                 let help = match &self.error {
                     Some(e) => Line::styled(e.as_str(), Style::new().fg(Color::Red)),
                     None => Line::raw("⏎ create worktree + start Mastra Code · Esc cancel"),
@@ -230,11 +257,21 @@ pub fn run_prompt<R: Runner>(herdr: &Herdr<R>) -> Result<()> {
         match prompt.key(key.code, key.modifiers) {
             Step::Stay => {}
             Step::Exit => break Ok(()),
-            Step::Create(branch) => {
+            Step::Create(target) => {
                 let repo = prompt.repo.clone().unwrap_or_default();
-                prompt.error = Some(format!("creating {branch}…"));
+                prompt.error = Some(format!("creating {}…", prompt.input.trim()));
                 let _ = terminal.draw(|f| prompt.render(f));
-                match create_worktree(herdr, &repo, &branch) {
+                let made = match &target {
+                    pr::Target::Branch(branch) => create_worktree(herdr, &repo, branch),
+                    pr::Target::Pr { number, repo: url } => create_pr_worktree(
+                        herdr,
+                        &repo,
+                        *number,
+                        url.as_deref(),
+                        (&pr::worktrees_dir(), setup::after_open),
+                    ),
+                };
+                match made {
                     Ok(()) => break Ok(()),
                     Err(e) => prompt.error = Some(format!("{e:#}")),
                 }
@@ -349,13 +386,6 @@ mod tests {
     }
 
     #[test]
-    fn branch_input_trims_and_refuses_empty() {
-        assert_eq!(branch_input("  feat/x \n").unwrap(), "feat/x");
-        assert!(branch_input("").is_err());
-        assert!(branch_input("   ").is_err());
-    }
-
-    #[test]
     fn repo_root_uses_herdr_metadata_then_git() {
         let f = FakeRunner::new();
         let ctx = Context::parse(ACTION).unwrap();
@@ -414,6 +444,82 @@ mod tests {
         assert!(calls.iter().all(|c| !c.contains("agent prompt")));
     }
 
+    fn pr_runner(origin: &str) -> FakeRunner {
+        let f = FakeRunner::new();
+        f.ok(
+            &["git", "-C", "/c/main", "remote", "get-url", "origin"],
+            None,
+            origin,
+        );
+        f
+    }
+
+    #[test]
+    fn a_pr_url_from_another_repo_is_refused_before_any_lookup() {
+        let herdr = Herdr::with_bin(pr_runner("git@github.com:o/r.git\n"), "herdr");
+        let dirs = (Path::new("/wt"), (|_| None) as pr::Setup);
+        let err = create_pr_worktree(&herdr, "/c/main", 7, Some("x/y"), dirs)
+            .unwrap_err()
+            .to_string();
+        assert_eq!(err, "that PR is in x/y; this repo is o/r");
+        assert_eq!(herdr.runner.argvs().len(), 1, "only the origin read");
+    }
+
+    #[test]
+    fn a_pr_number_makes_its_worktree_and_starts_mastracode_there() {
+        let f = pr_runner("https://github.com/O/R.git\n");
+        let view = pr::view_argv("O/R", 7);
+        let view: Vec<&str> = view.iter().map(String::as_str).collect();
+        f.ok(
+            &view,
+            None,
+            r#"{"headRefName":"feat/7","isCrossRepository":true,"number":7}"#,
+        )
+        .ok(
+            &["herdr", "workspace", "list"],
+            None,
+            r#"{"result":{"workspaces":[]}}"#,
+        );
+        let gh = pr::checkout_argv("O/R", 7, "/wt/main/feat-7");
+        let gh: Vec<&str> = gh.iter().map(String::as_str).collect();
+        f.ok(&gh, Some("/c/main"), "")
+            .ok(
+                &[
+                    "herdr",
+                    "worktree",
+                    "open",
+                    "--cwd",
+                    "/c/main",
+                    "--path",
+                    "/wt/main/feat-7",
+                    "--label",
+                    "#7",
+                    "--focus",
+                ],
+                None,
+                include_str!("../../../tests/fixtures/worktree-open.json"),
+            )
+            .otherwise(r#"{"result":{}}"#);
+        let herdr = Herdr::with_bin(f, "herdr");
+        let dirs = (
+            Path::new("/wt"),
+            (|_| panic!("forks skip setup")) as pr::Setup,
+        );
+        create_pr_worktree(&herdr, "/c/main", 7, Some("o/r"), dirs).unwrap();
+        let calls = herdr.runner.argvs();
+        assert!(
+            calls.iter().any(|c| c.starts_with(
+                "herdr notification show Werkbank setup --body #7: fork, setup skipped"
+            )),
+            "{calls:?}"
+        );
+        assert_eq!(
+            calls.last().unwrap(),
+            "herdr pane run w3:p1 mastracode",
+            "{calls:?}"
+        );
+    }
+
     #[test]
     fn prompt_keys_refuse_empty_then_create_trimmed_branch() {
         let mut p = Prompt {
@@ -430,7 +536,15 @@ mod tests {
         p.key(KeyCode::Char('x'), KeyModifiers::NONE);
         assert_eq!(
             p.key(KeyCode::Enter, KeyModifiers::NONE),
-            Step::Create("ax".into())
+            Step::Create(pr::Target::Branch("ax".into()))
+        );
+        p.input = "#12".into();
+        assert_eq!(
+            p.key(KeyCode::Enter, KeyModifiers::NONE),
+            Step::Create(pr::Target::Pr {
+                number: 12,
+                repo: None
+            })
         );
         assert_eq!(p.key(KeyCode::Esc, KeyModifiers::NONE), Step::Exit);
     }

@@ -363,27 +363,22 @@ impl<R: Runner> Herdr<R> {
         })
     }
 
-    /// `worktree_create` from `base` with a workspace `label`.
-    pub fn worktree_create_at(
+    /// Opens an existing worktree at `path` as a workspace labelled `label`.
+    pub fn worktree_open(
         &self,
         cwd: &str,
-        branch: &str,
-        base: &str,
+        path: &str,
         label: &str,
         focus: bool,
     ) -> Result<CreatedWorktree> {
-        check_branch(branch)?;
-        check_branch(base)?;
         let focus_flag = if focus { "--focus" } else { "--no-focus" };
         let result = self.json(&[
-            "worktree", "create", "--cwd", cwd, "--branch", branch, "--base", base, "--label",
-            label, focus_flag,
+            "worktree", "open", "--cwd", cwd, "--path", path, "--label", label, focus_flag,
         ])?;
         Ok(CreatedWorktree {
             workspace_id: str_at(&result, &["workspace", "workspace_id"])?,
-            checkout_path: str_at(&result, &["worktree", "path"])
-                .or_else(|_| str_at(&result, &["workspace", "worktree", "checkout_path"]))?,
-            root_pane_id: str_at(&result, &["root_pane", "pane_id"]).unwrap_or_default(),
+            checkout_path: str_at(&result, &["worktree", "path"])?,
+            root_pane_id: str_at(&result, &["root_pane", "pane_id"])?,
         })
     }
 
@@ -669,6 +664,30 @@ mod tests {
         assert!(created.workspace_id.starts_with('w'));
         assert!(created.checkout_path.contains("/.herdr/worktrees/"));
         assert!(created.root_pane_id.starts_with(&created.workspace_id));
+    }
+
+    #[test]
+    fn parses_worktree_open_fixture() {
+        let h = herdr();
+        let argv = [
+            "herdr",
+            "worktree",
+            "open",
+            "--cwd",
+            "/c/main",
+            "--path",
+            "/wt/r/feat-7",
+            "--label",
+            "#7",
+            "--focus",
+        ];
+        h.runner.ok(&argv, None, &fixture("worktree-open.json"));
+        let opened = h
+            .worktree_open("/c/main", "/wt/r/feat-7", "#7", true)
+            .unwrap();
+        assert_eq!(opened.workspace_id, "w3");
+        assert_eq!(opened.checkout_path, "/wt/r/feat-7");
+        assert_eq!(opened.root_pane_id, "w3:p1");
     }
 
     #[test]
