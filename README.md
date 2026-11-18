@@ -156,7 +156,8 @@ For a worktree that already exists, run the `setup-worktree` action.
 ## Using the Inbox
 
 `prefix+i` opens it. `1`–`4` or `[` / `]` switch views, `j` / `k` move, `/`
-filters, `r` refreshes, `q` quits. Anything that leaves the machine or starts
+filters, `r` refreshes, `q` quits. `?` lists every key of the current view
+and what its glyphs mean. Anything that leaves the machine or starts
 an agent first shows the exact text: `y` sends it, `n` cancels.
 
 ### Agents

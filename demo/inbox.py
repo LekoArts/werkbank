@@ -425,7 +425,9 @@ TOUR = [
     (0.7, DOWN, "next issue"), (0.7, SPACE, "mark"), (1.0, "f", "both to Factory, one PR"),
     (3.5, "n", "don't send"), (1.0, ENTER, "open the issue"), (3.0, ESC, "back to the list"),
     (1.5, "4", "Factory tab"), (2.0, DOWN, "next prompt"), (0.7, DOWN, "next prompt"),
-    (0.7, DOWN, "next prompt"), (2.0, "1", "back to Agents"), (3.0, None, None),
+    (0.7, DOWN, "next prompt"), (2.0, "1", "back to Agents"),
+    (1.5, "?", "every key and glyph"), (3.5, DOWN, "scroll"), (0.4, DOWN, "scroll"),
+    (2.0, ESC, "close the help"), (3.0, None, None),
 ]
 
 # The footer's key-pill colours.

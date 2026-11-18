@@ -261,6 +261,10 @@ pub struct App {
     /// The post in flight came from the marks.
     factory_batch: bool,
     seen_factory: u64,
+    /// The `?` screen is open, scrolled to this line.
+    pub help: Option<u16>,
+    /// The last line `help` can scroll to, as the last draw measured it.
+    help_max: std::cell::Cell<u16>,
 }
 
 impl App {
@@ -305,6 +309,8 @@ impl App {
             pr_pick: None,
             factory_batch: false,
             seen_factory: 0,
+            help: None,
+            help_max: std::cell::Cell::new(0),
         }
     }
 
@@ -613,6 +619,7 @@ impl App {
             || self.factory_input.is_some()
             || self.factory_confirm.is_some()
             || self.pr_pick.is_some()
+            || self.help.is_some()
     }
 
     /// The issues in display order.
@@ -1236,8 +1243,26 @@ impl App {
         None
     }
 
+    fn on_help_key(&mut self, code: KeyCode) -> Option<Command> {
+        let at = self.help.as_mut()?;
+        match code {
+            KeyCode::Char('j') | KeyCode::Down => {
+                *at = at.saturating_add(1).min(self.help_max.get());
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                *at = (*at).min(self.help_max.get()).saturating_sub(1);
+            }
+            KeyCode::Char('?' | 'q') | KeyCode::Esc => self.help = None,
+            _ => {}
+        }
+        None
+    }
+
     /// Applies a key; returns a command for the worker, if any.
     pub fn on_key(&mut self, code: KeyCode) -> Option<Command> {
+        if self.help.is_some() {
+            return self.on_help_key(code);
+        }
         if self.modal.is_some() {
             return self.on_modal_key(code);
         }
@@ -1261,6 +1286,10 @@ impl App {
         }
         self.flash = None;
         match code {
+            KeyCode::Char('?') => {
+                self.help = Some(0);
+                None
+            }
             KeyCode::Char(c @ '1'..='4') => self.switch_tab(Tab::ALL[c as usize - '1' as usize]),
             KeyCode::Char(']') => self.switch_tab(self.tab.step(1)),
             KeyCode::Char('[') => self.switch_tab(self.tab.step(-1)),
@@ -2033,6 +2062,9 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
     if let Some(confirm) = &app.factory_confirm {
         draw_factory_confirm(frame, body, confirm);
     }
+    if let Some(at) = app.help {
+        draw_help(frame, body, app, at);
+    }
 
     if app.tab == Tab::Agents {
         let text = truncate(&hint_line(app), usize::from(hint.width));
@@ -2087,9 +2119,10 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
             None => vec![],
         })
         .chain(selected.as_ref().and_then(Row::pr).map(|_| ("o", "PR")))
-        .chain([("r", "refresh"), ("1-4", "tabs"), ("q", "quit")])
+        .chain([("r", "refresh"), ("?", "help"), ("q", "quit")])
         .collect();
     let keys: &[(&str, &str)] = match app.tab {
+        _ if app.help.is_some() => &[("jk", "scroll"), ("esc", "close")],
         _ if app
             .modal
             .as_ref()
@@ -2127,6 +2160,7 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
             ("R", "rerun"),
             ("w", "worktree"),
             ("o", "open"),
+            ("?", "help"),
             ("q", "quit"),
         ],
         Tab::Prs => &[
@@ -2138,7 +2172,7 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
             ("w", "worktree"),
             ("o", "open"),
             ("r", "refresh"),
-            ("1-4", "tabs"),
+            ("?", "help"),
             ("q", "quit"),
         ],
         Tab::Issues if app.issue_open.is_some() => &[
@@ -2148,6 +2182,7 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
             ("s", "start"),
             ("f", "factory"),
             ("o", "open"),
+            ("?", "help"),
             ("q", "quit"),
         ],
         Tab::Issues => &[
@@ -2160,9 +2195,16 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
             ("o", "open"),
             ("n", "by id"),
             ("r", "refresh"),
+            ("?", "help"),
             ("q", "quit"),
         ],
-        Tab::Factory => &[("jk", "move"), ("⏎", "use"), ("1-4", "tabs"), ("q", "quit")],
+        Tab::Factory => &[
+            ("jk", "move"),
+            ("⏎", "use"),
+            ("1-4", "tabs"),
+            ("?", "help"),
+            ("q", "quit"),
+        ],
     };
     frame.render_widget(
         Paragraph::new(vec![
@@ -2170,6 +2212,158 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
             pills(keys),
         ]),
         footer,
+    );
+}
+
+/// `(key or glyph, what it means)` rows of the help screen.
+type HelpRows = &'static [(&'static str, &'static str)];
+
+/// What the current tab shows, its glyphs and every key, then the keys that work everywhere.
+pub fn help_lines(tab: Tab) -> Vec<Line<'static>> {
+    let (about, legend, keys): (&[&str], HelpRows, HelpRows) = match tab {
+        Tab::Agents => (
+            &[
+                "Every Mastra Code agent in this Herdr session, plus merged worktrees",
+                "waiting for cleanup. Rows are grouped by stage, oldest first, and show",
+                "what the agent is doing now and how far its goal is.",
+            ],
+            &[
+                (
+                    "✗",
+                    "needs fixing: stalled (⏸), failing CI, conflicts or changes requested",
+                ),
+                ("?", "asks you a question"),
+                ("!", "blocked, waiting for a permission"),
+                ("✓", "done"),
+                ("○", "idle"),
+                ("●", "working"),
+                ("◕", "its PR is in review"),
+                ("⇣", "PR merged, the worktree can be cleaned up"),
+            ],
+            &[
+                ("j k", "move"),
+                ("← →", "show one stage at a time"),
+                ("/", "filter by text"),
+                ("esc", "clear the stage, then the filter"),
+                ("⏎", "focus the agent's pane"),
+                ("tab", "reply to the agent without leaving the Inbox"),
+                ("o", "open the agent's PR"),
+                ("c", "clean up a merged worktree (asks you to type DELETE)"),
+                ("r", "refresh now"),
+            ],
+        ),
+        Tab::Prs => (
+            &[
+                "Your open PRs and the ones assigned to you. ⏎ opens the details:",
+                "checks, reviews and the description.",
+            ],
+            &[
+                ("●", "ready for review"),
+                ("◌", "draft"),
+                ("✓ ✗ ●", "checks pass, fail or are running"),
+                ("!", "conflicts or behind the base branch"),
+            ],
+            &[
+                ("j k", "move, or scroll the details"),
+                ("⏎", "open the details"),
+                ("esc", "back to the list"),
+                (
+                    "s",
+                    "start a local agent in the PR's worktree with a prompt",
+                ),
+                ("f", "send a prompt about the PR to Factory on Slack"),
+                ("R", "rerun the failed GitHub Actions jobs"),
+                ("w", "open the PR's worktree, creating it if needed"),
+                ("o", "open in the browser"),
+                ("r", "fetch again"),
+            ],
+        ),
+        Tab::Issues => (
+            &[
+                "Your open Linear issues, grouped by status and sorted by priority.",
+                "⏎ opens the description and comments.",
+            ],
+            &[],
+            &[
+                ("j k", "move, or scroll the details"),
+                ("⏎", "open the details"),
+                ("esc", "back to the list"),
+                ("c", "change the status"),
+                (
+                    "s",
+                    "start locally: worktree, Mastra Code and the issue prompt",
+                ),
+                ("f", "send to Factory on Slack; marked issues go as one PR"),
+                ("space", "mark or unmark an issue for f"),
+                ("n", "start any issue by its ID"),
+                ("o", "open in Linear"),
+                ("r", "fetch again"),
+            ],
+        ),
+        Tab::Factory => (
+            &[
+                "Prompts for Factory, posted to Slack as you. Message lets you write",
+                "your own. Prompts about an issue or PR ask for its URL. Every post",
+                "shows the exact text first and only goes out on y.",
+            ],
+            &[],
+            &[
+                ("j k", "move"),
+                ("⏎", "use the prompt"),
+                ("y n", "send or cancel in the preview"),
+            ],
+        ),
+    };
+    let heading = |t: &str| {
+        Line::styled(
+            t.to_string(),
+            fg(theme().accent).add_modifier(Modifier::BOLD),
+        )
+    };
+    let entry = |k: &str, text: &str| {
+        Line::from(vec![
+            Span::styled(
+                format!(" {k:<6}"),
+                fg(theme().accent).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(format!(" {text}"), fg(theme().subtext)),
+        ])
+    };
+    let mut lines = vec![heading(tab.label())];
+    lines.extend(about.iter().map(|l| Line::raw(l.to_string())));
+    if !legend.is_empty() {
+        lines.push(Line::raw(""));
+        lines.push(heading("Glyphs"));
+        lines.extend(legend.iter().map(|(k, t)| entry(k, t)));
+    }
+    lines.push(Line::raw(""));
+    lines.push(heading("Keys"));
+    lines.extend(keys.iter().map(|(k, t)| entry(k, t)));
+    lines.push(Line::raw(""));
+    lines.push(heading("Everywhere"));
+    lines.extend(
+        [
+            ("1-4", "switch tabs, or [ and ]"),
+            ("?", "this help, for the tab you are on"),
+            ("q", "quit (Ctrl+C always quits)"),
+        ]
+        .iter()
+        .map(|(k, t)| entry(k, t)),
+    );
+    lines
+}
+
+fn draw_help(frame: &mut Frame, body: Rect, app: &App, at: u16) {
+    let lines = help_lines(app.tab);
+    let inner = body.height.saturating_sub(2);
+    let max = (lines.len() as u16).saturating_sub(inner);
+    app.help_max.set(max);
+    frame.render_widget(Clear, body);
+    frame.render_widget(
+        Paragraph::new(lines)
+            .scroll((at.min(max), 0))
+            .block(Block::new().borders(Borders::ALL).title(" help ")),
+        body,
     );
 }
 
@@ -3042,6 +3236,74 @@ mod tests {
         assert_eq!(app.stage, Some(Stage::Working));
         app.on_key(KeyCode::Esc);
         assert_eq!(app.stage, None);
+    }
+
+    #[test]
+    fn question_mark_shows_the_tabs_help_and_closes_without_quitting() {
+        let mut app = app();
+        assert_eq!(app.on_key(KeyCode::Char('?')), None);
+        assert!(app.has_modal(), "q closes the help, not the Inbox");
+        let q = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
+        assert!(!app.quits(q));
+        let lines = render_h(&app, 40);
+        let screen = lines.join("\n");
+        assert!(lines[1].contains(" help "), "{lines:?}");
+        assert!(lines[2].contains("Agents"), "{lines:?}");
+        for want in ["⏸", "reply to the agent", "Everywhere", "this help"] {
+            assert!(screen.contains(want), "{want}: {lines:?}");
+        }
+        assert!(lines[39].contains("esc close"), "{lines:?}");
+        // Keys go to the help, not the list behind it.
+        assert_eq!(app.on_key(KeyCode::Enter), None);
+        assert_eq!(app.on_key_event(q), None);
+        assert!(app.help.is_none());
+        // Each tab explains itself.
+        for (key, want) in [
+            ('2', "rerun the failed"),
+            ('3', "mark or unmark"),
+            ('4', "only goes out on y"),
+        ] {
+            app.on_key(KeyCode::Char(key));
+            app.on_key(KeyCode::Char('?'));
+            assert!(render_h(&app, 40).join("\n").contains(want), "{want}");
+            app.on_key(KeyCode::Esc);
+            assert!(app.help.is_none());
+        }
+        app.on_key(KeyCode::Char('?'));
+        app.on_key(KeyCode::Char('?'));
+        assert!(app.help.is_none(), "? toggles");
+    }
+
+    #[test]
+    fn help_scrolls_within_its_lines_and_fits_the_width() {
+        for tab in Tab::ALL {
+            for line in help_lines(tab) {
+                assert!(line.width() <= 98, "{tab:?}: {line}");
+            }
+        }
+        let mut app = app();
+        app.on_key(KeyCode::Char('?'));
+        render_h(&app, 12);
+        for _ in 0..100 {
+            app.on_key(KeyCode::Char('j'));
+        }
+        let max = app.help.unwrap();
+        assert_eq!(
+            usize::from(max),
+            help_lines(Tab::Agents).len() - (12 - 4 - 2)
+        );
+        assert!(render_h(&app, 12)[7].contains("q  "), "the last line shows");
+        app.on_key(KeyCode::Char('k'));
+        assert_eq!(app.help, Some(max - 1));
+    }
+
+    #[test]
+    fn question_mark_types_into_the_filter() {
+        let mut app = app();
+        app.on_key(KeyCode::Char('/'));
+        type_text(&mut app, "?");
+        assert_eq!(app.filter, "?");
+        assert!(app.help.is_none());
     }
 
     #[test]
