@@ -157,7 +157,7 @@ For a worktree that already exists, run the `setup-worktree` action.
 
 `prefix+i` opens it. `1`–`4` or `[` / `]` switch views, `j` / `k` move, `/`
 filters, `r` refreshes, `q` quits. `?` lists every key of the current view
-and what its glyphs mean. Anything that leaves the machine or starts
+and what its glyphs mean, plus the Herdr keys you bound to Werkbank. Anything that leaves the machine or starts
 an agent first shows the exact text: `y` sends it, `n` cancels.
 
 ### Agents

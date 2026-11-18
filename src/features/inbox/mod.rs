@@ -1,6 +1,7 @@
 //! The Inbox: a pane in its own tab that views the always-on daemon's state.
 
 pub mod asking;
+pub mod herdr_keys;
 pub mod issues;
 pub mod model;
 pub mod prs;

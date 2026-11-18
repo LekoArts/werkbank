@@ -19,6 +19,7 @@ use crate::core::unix_ms;
 use crate::features::cleanup::CleanupView;
 use crate::features::daemon::{self, Paths};
 use crate::features::factory::prompt::{Factory, Message, Prompt, Role};
+use crate::features::inbox::herdr_keys::herdr_keys;
 use crate::features::inbox::issues;
 use crate::features::inbox::model::{
     self, age_text, glyph_of, stage_of, title_of, AgentSnapshot, Row, Stage,
@@ -2219,7 +2220,7 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
 type HelpRows = &'static [(&'static str, &'static str)];
 
 /// What the current tab shows, its glyphs and every key, then the keys that work everywhere.
-pub fn help_lines(tab: Tab) -> Vec<Line<'static>> {
+pub fn help_lines(tab: Tab, herdr: &[(String, String)]) -> Vec<Line<'static>> {
     let (about, legend, keys): (&[&str], HelpRows, HelpRows) = match tab {
         Tab::Agents => (
             &[
@@ -2350,11 +2351,33 @@ pub fn help_lines(tab: Tab) -> Vec<Line<'static>> {
         .iter()
         .map(|(k, t)| entry(k, t)),
     );
+    lines.push(Line::raw(""));
+    lines.push(heading("In Herdr"));
+    if herdr.is_empty() {
+        lines.push(Line::styled(
+            "No Werkbank actions are bound in Herdr's config.toml; see the README.",
+            fg(theme().subtext),
+        ));
+    }
+    let width = herdr
+        .iter()
+        .map(|(k, _)| k.chars().count())
+        .max()
+        .unwrap_or(0);
+    lines.extend(herdr.iter().map(|(k, t)| {
+        Line::from(vec![
+            Span::styled(
+                format!(" {k:<width$}"),
+                fg(theme().accent).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(format!("  {t}"), fg(theme().subtext)),
+        ])
+    }));
     lines
 }
 
 fn draw_help(frame: &mut Frame, body: Rect, app: &App, at: u16) {
-    let lines = help_lines(app.tab);
+    let lines = help_lines(app.tab, herdr_keys());
     let inner = body.height.saturating_sub(2);
     let max = (lines.len() as u16).saturating_sub(inner);
     app.help_max.set(max);
@@ -3277,7 +3300,7 @@ mod tests {
     #[test]
     fn help_scrolls_within_its_lines_and_fits_the_width() {
         for tab in Tab::ALL {
-            for line in help_lines(tab) {
+            for line in help_lines(tab, &[]) {
                 assert!(line.width() <= 98, "{tab:?}: {line}");
             }
         }
@@ -3290,11 +3313,44 @@ mod tests {
         let max = app.help.unwrap();
         assert_eq!(
             usize::from(max),
-            help_lines(Tab::Agents).len() - (12 - 4 - 2)
+            help_lines(Tab::Agents, &[]).len() - (12 - 4 - 2)
         );
-        assert!(render_h(&app, 12)[7].contains("q  "), "the last line shows");
+        assert!(
+            render_h(&app, 12)[7].contains("see the README"),
+            "the last line shows"
+        );
         app.on_key(KeyCode::Char('k'));
         assert_eq!(app.help, Some(max - 1));
+    }
+
+    #[test]
+    fn help_lists_the_herdr_keys_bound_to_werkbank() {
+        let text = |lines: Vec<Line>| {
+            lines
+                .iter()
+                .map(|l| l.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let none = text(help_lines(Tab::Prs, &[]));
+        assert!(
+            none.contains("In Herdr\nNo Werkbank actions are bound"),
+            "{none}"
+        );
+        let keys = vec![
+            ("ctrl+b i".to_string(), "open the Inbox".to_string()),
+            (
+                "alt+y".to_string(),
+                "new worktree with Mastra Code".to_string(),
+            ),
+        ];
+        let shown = text(help_lines(Tab::Issues, &keys));
+        assert!(
+            shown.ends_with(
+                "In Herdr\n ctrl+b i  open the Inbox\n alt+y     new worktree with Mastra Code"
+            ),
+            "{shown}"
+        );
     }
 
     #[test]

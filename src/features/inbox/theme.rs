@@ -194,7 +194,7 @@ pub fn theme() -> &'static Theme {
     })
 }
 
-fn config_path() -> Option<PathBuf> {
+pub(super) fn config_path() -> Option<PathBuf> {
     if let Some(p) = std::env::var_os("HERDR_CONFIG_PATH") {
         return Some(p.into());
     }
