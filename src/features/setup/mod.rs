@@ -275,7 +275,8 @@ pub struct Prepared {
 }
 
 /// Copy, then detect.
-pub fn prepare<R: Runner>(runner: &R, env: &SetupEnv, t: &Target) -> Result<Prepared> {
+/// `echo` also prints the copy report and warnings; off when a TUI owns the terminal.
+pub fn prepare<R: Runner>(runner: &R, env: &SetupEnv, t: &Target, echo: bool) -> Result<Prepared> {
     crate::core::private_dir(&env.state_dir)?;
     let log = env.setup_log();
     let marker = marker_path(&env.state_dir, &t.checkout);
@@ -294,7 +295,9 @@ pub fn prepare<R: Runner>(runner: &R, env: &SetupEnv, t: &Target) -> Result<Prep
         Err(e) => vec![format!("copy failed: {e:#}")],
     };
     for line in &copy_report {
-        println!("{line}");
+        if echo {
+            println!("{line}");
+        }
         append(&log, line);
     }
     // No marker after a failed copy, so a waiting launcher shows its "not copied" notice.
@@ -307,7 +310,9 @@ pub fn prepare<R: Runner>(runner: &R, env: &SetupEnv, t: &Target) -> Result<Prep
         env.override_file.as_deref(),
     );
     for w in &detected.warnings {
-        println!("{w}");
+        if echo {
+            println!("{w}");
+        }
         append(&log, w);
     }
     let copy_line = copy_report[0].clone();
@@ -361,9 +366,10 @@ pub fn dispatch<R: Runner>(
             })
         });
     if let Err(e) = &started {
-        let msg = format!("setup could not start: {} ({e:#})", t.branch);
-        eprintln!("{msg}");
-        append(&env.setup_log(), &msg);
+        append(
+            &env.setup_log(),
+            &format!("setup could not start: {} ({e:#})", t.branch),
+        );
         let _ = notify(
             herdr,
             env,
@@ -657,7 +663,7 @@ pub fn after_open(t: &Target) -> Option<String> {
         let env = SetupEnv::from_env()?;
         let herdr = Herdr::with_bin(RealRunner::default(), env.herdr_bin.clone())
             .for_session(env.session.clone());
-        if let Some(job) = prepare(&herdr.runner, &env, t)?.job {
+        if let Some(job) = prepare(&herdr.runner, &env, t, false)?.job {
             dispatch(&herdr, &env, t, &job, &exe()?, false)?;
         }
         Ok(())
@@ -674,7 +680,7 @@ pub fn run_hook() -> Result<()> {
     };
     let herdr = Herdr::with_bin(RealRunner::default(), env.herdr_bin.clone())
         .for_session(env.session.clone());
-    if let Some(job) = prepare(&herdr.runner, &env, &target)?.job {
+    if let Some(job) = prepare(&herdr.runner, &env, &target, true)?.job {
         dispatch(&herdr, &env, &target, &job, &exe()?, false)?;
     }
     Ok(())
@@ -707,7 +713,7 @@ pub fn run_action() -> Result<()> {
         repo_root,
         checkout,
     };
-    let prepared = prepare(&herdr.runner, &env, &target)?;
+    let prepared = prepare(&herdr.runner, &env, &target, true)?;
     match prepared.job {
         Some(job) => dispatch(&herdr, &env, &target, &job, &exe()?, true),
         None => {
@@ -909,7 +915,7 @@ mod tests {
         fs::create_dir_all(&env.state_dir).unwrap();
         let marker = marker_path(&env.state_dir, &wt.to_string_lossy());
         fs::write(&marker, "stale").unwrap();
-        let job = prepare(&RealRunner::default(), &env, &target(&root, &wt))
+        let job = prepare(&RealRunner::default(), &env, &target(&root, &wt), true)
             .unwrap()
             .job
             .unwrap();
@@ -949,7 +955,7 @@ mod tests {
         )
         .unwrap();
         let env = setup_env("noop", Some(cfg));
-        let prepared = prepare(&RealRunner::default(), &env, &target(&root, &wt)).unwrap();
+        let prepared = prepare(&RealRunner::default(), &env, &target(&root, &wt), true).unwrap();
         assert_eq!(prepared.job, None);
         assert!(prepared.copy.starts_with("copy: "), "{}", prepared.copy);
         let log = fs::read_to_string(env.setup_log()).unwrap();
@@ -973,7 +979,7 @@ mod tests {
         )
         .unwrap();
         let env = setup_env("shell", Some(cfg));
-        let job = prepare(&RealRunner::default(), &env, &target(&root, &wt))
+        let job = prepare(&RealRunner::default(), &env, &target(&root, &wt), true)
             .unwrap()
             .job
             .unwrap();
@@ -1093,7 +1099,7 @@ mod tests {
         let env = setup_env("nocopy", None);
         fs::create_dir_all(&env.state_dir).unwrap();
         let marker = marker_path(&env.state_dir, &wt.to_string_lossy());
-        let prepared = prepare(&RealRunner::default(), &env, &target(&not_git, &wt)).unwrap();
+        let prepared = prepare(&RealRunner::default(), &env, &target(&not_git, &wt), true).unwrap();
         assert!(
             prepared.copy.starts_with("copy failed"),
             "{}",
