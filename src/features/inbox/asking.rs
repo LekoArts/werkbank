@@ -94,6 +94,11 @@ impl AskTracker {
         self.panes.get(pane).is_some_and(|seen| seen.busy)
     }
 
+    /// A read was made and showed no running turn.
+    pub fn idle(&self, pane: &str) -> bool {
+        self.panes.get(pane).is_some_and(|seen| !seen.busy)
+    }
+
     /// The pending question from the last read, kept between re-reads.
     pub fn question(&self, pane: &str) -> Option<String> {
         self.panes.get(pane).and_then(|seen| seen.question.clone())

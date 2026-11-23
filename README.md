@@ -233,6 +233,9 @@ URL first.
   keeps `working` after a goal-mode turn stops to wait for you. Werkbank finds
   questions on the screen (`?`), but such a goal pane shows as working and then
   stalled.
+- Herdr can also keep `working` after a turn the PR-merged notice started. When
+  the PR is merged and the screen has no busy footer, Werkbank counts the agent
+  as idle and lists it under Merged.
 - Ask detection and the busy check read Mastra Code's screen, so a Mastra Code
   UI change can break them.
 - A long silent command (a 6-minute test run) shows as stalled.

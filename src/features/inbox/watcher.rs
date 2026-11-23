@@ -811,12 +811,25 @@ impl<R: Runner> Watcher<R> {
             self.ask.forget(pane);
         }
         let asking = self.ask.asking(pane);
+        let cwd = info.foreground_cwd.as_deref().or(info.cwd.as_deref());
+        let key = match cwd {
+            Some(cwd) => self.branch(cwd)?,
+            None => None,
+        };
+        let pr = key.as_ref().and_then(|k| self.prs.get(k)).cloned();
         // Herdr's status comes from Mastra Code's hook, which can miss a turn
         // starting (goal-mode continuations stay `idle`); the running-turn
         // footer on screen corrects it.
         let mut info = info.clone();
         if matches!(info.agent_status.as_str(), "idle" | "done") && self.ask.busy(pane) {
             info.agent_status = "working".to_string();
+        }
+        // The other way round only once the PR is merged: Herdr can keep
+        // `working` after the turn the merge notice woke has ended, and a
+        // screen without the running-turn footer says it has.
+        let merged = pr.as_ref().is_some_and(|p| p.state == PrState::Merged);
+        if info.agent_status == "working" && merged && self.ask.idle(pane) {
+            info.agent_status = "idle".to_string();
         }
         let info = &info;
         // Waiting on the user is not a stall.
@@ -833,13 +846,6 @@ impl<R: Runner> Watcher<R> {
         let status = if asking { "asking" } else { &info.agent_status };
         self.stall.observe(pane, status, screen.as_deref(), now);
         let stalled = self.stall.stalled(pane, now, self.settings.stall_threshold);
-
-        let cwd = info.foreground_cwd.as_deref().or(info.cwd.as_deref());
-        let key = match cwd {
-            Some(cwd) => self.branch(cwd)?,
-            None => None,
-        };
-        let pr = key.as_ref().and_then(|k| self.prs.get(k)).cloned();
 
         // A failed token write must not hide the agent from the Inbox.
         if let Err(err) = self.sync_tokens(
@@ -2710,6 +2716,59 @@ pub(crate) mod tests {
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap()
+    }
+
+    /// One mastracode pane on feat/x whose PR is merged, Herdr saying `working`.
+    fn merged_working(visible: &str) -> Watcher<FakeRunner> {
+        let merged = std::fs::read_to_string(format!(
+            "{}/tests/fixtures/gh/pr-merged.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let f = FakeRunner::new();
+        f.ok(&["herdr", "agent", "list"], None, &agents_json("working"))
+            .ok(&["herdr", "workspace", "list"], None, WORKSPACES)
+            .ok(&VISIBLE, None, visible)
+            .ok(&READ, None, visible)
+            .ok(&GIT, None, "/r\nfeat/x\n/r/.git\n")
+            .ok(&gh_for(&["feat/x"]), Some("/r"), &as_batch(&merged))
+            .otherwise(OK_REPLY);
+        let settings = Settings {
+            stall_threshold: Duration::from_secs(300),
+            poll: Duration::from_millis(10),
+        };
+        Watcher::new(
+            Herdr::with_bin(f, "herdr"),
+            settings,
+            Arc::new(AtomicBool::new(false)),
+        )
+    }
+
+    #[test]
+    fn a_merged_pr_with_an_idle_screen_beats_a_stale_working() {
+        let mut w = merged_working(&screen("mc-idle-done.txt"));
+        let t0 = Instant::now();
+        w.tick(t0).unwrap();
+        let s = w.tick(t0 + Duration::from_secs(400)).unwrap();
+        let a = agent(&s, PANE);
+        assert_eq!(a.info.agent_status, "idle");
+        assert_eq!(a.stalled, None, "never stalls");
+        assert_eq!(
+            crate::features::inbox::model::stage_of(a),
+            crate::features::inbox::model::Stage::Merged
+        );
+    }
+
+    #[test]
+    fn a_merged_pr_with_a_running_turn_stays_working() {
+        let mut w = merged_working(&screen("mc-working-a.txt"));
+        let s = w.tick(Instant::now()).unwrap();
+        let a = agent(&s, PANE);
+        assert_eq!(a.info.agent_status, "working");
+        assert_eq!(
+            crate::features::inbox::model::stage_of(a),
+            crate::features::inbox::model::Stage::Working
+        );
     }
 
     #[test]
