@@ -9,9 +9,10 @@ use crate::core::stop::Guard;
 use crate::integrations::github::{gh_lookup, PrInfo, PrState};
 
 /// Git state files that mean a merge, rebase, cherry-pick, revert or bisect is in progress.
-const GIT_OPS: [&str; 7] = [
+/// Not REBASE_HEAD: git can leave it behind after a rebase finishes, and git itself
+/// only treats rebase-merge/rebase-apply as a rebase in progress.
+const GIT_OPS: [&str; 6] = [
     "MERGE_HEAD",
-    "REBASE_HEAD",
     "rebase-merge",
     "rebase-apply",
     "CHERRY_PICK_HEAD",
@@ -526,6 +527,31 @@ mod tests {
         });
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(r, vec![Refusal::GitOperation("MERGE_HEAD".into())]);
+    }
+
+    #[test]
+    fn a_leftover_rebase_head_passes_but_a_rebase_in_progress_refuses() {
+        let dir = std::env::temp_dir().join(format!("werkbank-rebase-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("rebase-merge")).unwrap();
+        std::fs::write(dir.join("REBASE_HEAD"), "x").unwrap();
+        let r = refusals(|f| {
+            ok(
+                f,
+                &g(&["rev-parse", "--git-path", "rebase-merge"]),
+                dir.join("rebase-merge").to_str().unwrap(),
+            )
+        });
+        std::fs::remove_dir(dir.join("rebase-merge")).unwrap();
+        let leftover = refusals(|f| {
+            ok(
+                f,
+                &g(&["rev-parse", "--git-path", "REBASE_HEAD"]),
+                dir.join("REBASE_HEAD").to_str().unwrap(),
+            )
+        });
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(r, vec![Refusal::GitOperation("rebase-merge".into())]);
+        assert!(leftover.is_empty(), "{leftover:?}");
     }
 
     #[test]
