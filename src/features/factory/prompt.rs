@@ -104,7 +104,7 @@ fn default_prompts() -> Vec<Prompt> {
         Prompt::new(
             "Address review",
             Role::Pr,
-            "Please address the review comments on this PR: {ref}",
+            "Please address the review comments on this PR: {ref} Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.",
         ),
     ]
 }
