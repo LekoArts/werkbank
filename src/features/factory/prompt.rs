@@ -84,12 +84,12 @@ fn default_prompts() -> Vec<Prompt> {
         Prompt::new(
             "Linear issue → PR",
             Role::Issue,
-            "Understand the requirements in this ticket and become an expert on its topics. Move from triaging to finished PR ready for review by yourself. Between steps run adversarial reviews to check your own work.\n{ref}",
+            "Understand the requirements in this ticket and become an expert on its topics. Move from triaging to finished PR ready for review by yourself. Between steps run adversarial reviews to check your own work. Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.\n{ref}",
         ),
         Prompt::new(
             "Linear issues → one PR",
             Role::IssueBatch,
-            "Please work on these Linear issues together and open a single PR that covers all of them and is ready for review. Make one commit per issue. If they don't belong together, stop and ask me before combining them.\n{refs}",
+            "Please work on these Linear issues together and open a single PR that covers all of them and is ready for review. Make one commit per issue. If they don't belong together, stop and ask me before combining them. Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.\n{refs}",
         ),
         Prompt::new(
             "Review PR",
