@@ -97,7 +97,7 @@ fn default_prompts() -> Vec<Prompt> {
         Prompt::new(
             "Review PR",
             Role::PrReview,
-            "Review the following PR. Become an expert on its topics and give useful comments in the context of the PR.\n{ref}",
+            "Review the following PR. Become an expert on its topics and give useful comments in the context of the PR. Submit them as one GitHub review with inline comments: approve if it is ready to merge, otherwise request changes. Do not leave plain comments.\n{ref}",
         ),
         Prompt::new(
             "Fix CI",
@@ -313,7 +313,7 @@ mod tests {
             )
             .unwrap(),
             Message {
-                body: "<@U0FACTORY> Review the following PR. Become an expert on its topics and give useful comments in the context of the PR.\nhttps://github.com/a/b/pull/7".into(),
+                body: "<@U0FACTORY> Review the following PR. Become an expert on its topics and give useful comments in the context of the PR. Submit them as one GitHub review with inline comments: approve if it is ready to merge, otherwise request changes. Do not leave plain comments.\nhttps://github.com/a/b/pull/7".into(),
                 signature: Some("Sent via werkbank".into()),
             }
         );
@@ -406,7 +406,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             m.body,
-            "<@U0FACTORY> Review the following PR. Become an expert on its topics and give useful comments in the context of the PR.\n&lt;!channel&gt; https://x/?a=1&amp;b=2"
+            "<@U0FACTORY> Review the following PR. Become an expert on its topics and give useful comments in the context of the PR. Submit them as one GitHub review with inline comments: approve if it is ready to merge, otherwise request changes. Do not leave plain comments.\n&lt;!channel&gt; https://x/?a=1&amp;b=2"
         );
     }
 
