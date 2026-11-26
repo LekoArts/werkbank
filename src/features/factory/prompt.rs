@@ -78,6 +78,9 @@ impl Prompt {
 
 pub const DEFAULT_SIGNATURE: &str = "Sent via werkbank";
 
+/// Slack's limit for a section block's text; the body is one section.
+pub const SECTION_MAX: usize = 3000;
+
 /// Every built-in prompt; a role the file doesn't define gets all of its own.
 fn default_prompts() -> Vec<Prompt> {
     vec![
@@ -118,6 +121,23 @@ pub struct Message {
 }
 
 impl Message {
+    /// The body's length as Slack counts a section's text (UTF-16 units, so
+    /// never fewer than the characters), mention and escaping included.
+    pub fn slack_len(&self) -> usize {
+        self.body.encode_utf16().count()
+    }
+
+    /// Slack rejects a section over [`SECTION_MAX`] with `invalid_blocks`.
+    pub fn too_long(&self) -> Option<String> {
+        let n = self.slack_len();
+        (n > SECTION_MAX).then(|| {
+            format!(
+                "message is {n} characters as Slack counts them (mention and escaped & < > included); the limit is {SECTION_MAX}, so cut at least {}",
+                n - SECTION_MAX
+            )
+        })
+    }
+
     /// The lines the confirm shows, signature last, read the way Slack shows
     /// the escaped refs.
     pub fn preview(&self) -> Vec<String> {
@@ -243,6 +263,12 @@ impl Factory {
             body: format!("{mention} {}", body.trim()),
             signature: (!sig.is_empty()).then(|| sig.to_string()),
         })
+    }
+
+    /// A draft an agent wrote: escaped whole, so it can't ping a channel or
+    /// hide a link; mrkdwn like `*bold*` and backticks still renders.
+    pub fn compose_draft(&self, text: &str) -> Option<Message> {
+        self.compose_message(&slack_escape(text.trim()))
     }
 }
 
@@ -412,5 +438,40 @@ mod tests {
         assert_eq!(normalize_mention("<!channel>"), None);
         let f = Factory::from_file(None, None);
         assert_eq!(f.compose(f.for_role(Role::Issue), &[ISSUE.into()]), None);
+    }
+
+    #[test]
+    fn drafts_are_escaped_whole_and_keep_mrkdwn() {
+        let m = factory(None)
+            .compose_draft("  <!channel> see *this* & `that` <https://x|y>\n")
+            .unwrap();
+        assert_eq!(
+            m.body,
+            "<@U0FACTORY> &lt;!channel&gt; see *this* &amp; `that` &lt;https://x|y&gt;"
+        );
+        assert_eq!(m.signature.as_deref(), Some(DEFAULT_SIGNATURE));
+    }
+
+    #[test]
+    fn the_limit_counts_mention_escaping_and_utf16() {
+        let f = factory(None);
+        let room = SECTION_MAX - "<@U0FACTORY> ".len();
+        let fits = f.compose_draft(&"a".repeat(room)).unwrap();
+        assert_eq!(fits.slack_len(), SECTION_MAX);
+        assert_eq!(fits.too_long(), None);
+        let amp = f
+            .compose_draft(&format!("{}&", "a".repeat(room - 4)))
+            .unwrap();
+        assert_eq!(amp.slack_len(), SECTION_MAX + 1);
+        let err = amp.too_long().unwrap();
+        assert!(
+            err.contains("3001") && err.contains("cut at least 1"),
+            "{err}"
+        );
+        // An emoji is two UTF-16 units: one character, counted as two.
+        let emoji = f
+            .compose_draft(&format!("{}🦀", "a".repeat(room - 1)))
+            .unwrap();
+        assert!(emoji.too_long().is_some());
     }
 }

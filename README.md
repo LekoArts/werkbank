@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/f22293d6-9162-4795-a7e5-5e5b479a872a
   - **Agents**: every agent, grouped by whose move it is, with what it is doing now, its goal progress, its PR and its Linear issue. You can reply without leaving the list.
   - **PRs**: your open PRs. Start a local agent on one, hand it to Factory, rerun failed CI or open its worktree.
   - **Issues**: your Linear issues. Start one locally in a fresh worktree, or send it to Factory (one issue, or several as one PR).
-  - **Factory**: send prepared or free-form prompts to Mastra Factory through Slack.
+  - **Factory**: send prepared or free-form prompts to Mastra Factory through Slack, and review drafts your agents wrote for it.
 - **Sidebar tokens** on each agent pane: `$pr` (`#123 ✓` / `✗` / `…` / `⇣` merged / `⊘` closed), `$stalled` (`⏸ 6m`), `$asking` (`?`).
 - **Tab-bar summary**: `?1 ⏸2 ✗1 ⇣1`, empty when nothing needs you.
 - **Notifications** for stalled agents and failed CI.
@@ -135,6 +135,32 @@ first unless the prompt is `free` and has no `{ref}`. `{ref}` is one URL and
 last line. The signature appears as a small line under the
 Slack message; set `""` to drop it.
 
+Slack refuses a message body over 3000 characters, counted with the mention
+and with `&` `<` `>` escaped. Werkbank refuses it first.
+
+### Agent drafts
+
+An agent can hand work to Factory without posting anything itself:
+
+```sh
+<plugin dir>/target/release/werkbank factory draft <<'MSG'
+…one self-contained task…
+MSG
+```
+
+The draft waits in the Factory tab until you send it. A message over the
+3000-character limit is refused, with how much to cut. The draft is escaped
+whole, so it can't ping `@channel` or hide a link. Drafts live in
+`<config dir>/factory-drafts/`; outside Herdr's plugin context the command
+asks `herdr plugin config-dir werkbank` where that is.
+
+`skills/werkbank-send-shipyard` is a Mastra Code skill that tells an agent how
+to call this and how to write a task Factory can act on. Install it globally:
+
+```sh
+cp -R skills/werkbank-send-shipyard ~/.mastracode/skills/
+```
+
 ### Worktree setup
 
 No config needed. Install and build commands are detected from `package.json`
@@ -221,8 +247,16 @@ labels, project and open worktree; on a narrow Inbox the labels give way first.
 
 ### Factory
 
+Agent drafts come first; the tab shows their count, e.g. `Factory (2)`.
 **Message** sends whatever you type. The other rows are prompts that ask for a
 URL first.
+
+| Key | Action |
+|---|---|
+| `⏎` | Preview the draft or use the prompt |
+| `y` | Send the previewed message |
+| `d` | Discard the previewed draft |
+| `n` | Close the preview; a draft stays |
 
 ## Limits
 

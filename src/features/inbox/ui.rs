@@ -18,6 +18,7 @@ use crate::core::runner::{RealRunner, Runner};
 use crate::core::unix_ms;
 use crate::features::cleanup::CleanupView;
 use crate::features::daemon::{self, Paths};
+use crate::features::factory::drafts::{self, Draft};
 use crate::features::factory::prompt::{Factory, Message, Prompt, Role};
 use crate::features::inbox::herdr_keys::herdr_keys;
 use crate::features::inbox::issues;
@@ -104,6 +105,8 @@ pub struct FactoryConfirm {
     pub batch: bool,
     /// `Some`: a local agent on this PR gets the body; `None`: Slack.
     pub local: Option<PrRef>,
+    /// The agent draft this is, deleted once it posts; `d` discards it.
+    pub draft: Option<String>,
 }
 
 /// The PR a prompt is about, and where its branch lives.
@@ -160,9 +163,11 @@ impl FactoryInput {
     }
 }
 
-/// A Factory tab row: the free-form message, then each sendable prompt.
+/// A Factory tab row: agent drafts, the free-form message, then each
+/// sendable prompt.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FactoryRow<'a> {
+    Draft(&'a Draft),
     Message,
     Prompt(&'a Prompt),
 }
@@ -262,6 +267,12 @@ pub struct App {
     /// The post in flight came from the marks.
     factory_batch: bool,
     seen_factory: u64,
+    /// Where agents' `werkbank factory draft` files land; `None` in tests
+    /// that don't use them.
+    drafts_dir: Option<PathBuf>,
+    pub drafts: Vec<Draft>,
+    /// The draft the pending post sends, deleted once it went out.
+    factory_draft: Option<String>,
     /// The `?` screen is open, scrolled to this line.
     pub help: Option<u16>,
     /// The last line `help` can scroll to, as the last draw measured it.
@@ -310,6 +321,9 @@ impl App {
             pr_pick: None,
             factory_batch: false,
             seen_factory: 0,
+            drafts_dir: None,
+            drafts: Vec::new(),
+            factory_draft: None,
             help: None,
             help_max: std::cell::Cell::new(0),
         }
@@ -323,19 +337,57 @@ impl App {
 
     /// Opens the confirm with the exact message, or flashes what's missing.
     fn open_factory(&mut self, prompt: &Prompt, refs: &[String], batch: bool) -> Option<Command> {
-        if !self.factory_ready() {
-            return None;
+        if self.factory_ready() {
+            let message = self.factory.compose(prompt, refs);
+            self.confirm_slack(message, batch, None);
         }
-        self.factory_confirm = self
-            .factory
-            .compose(prompt, refs)
-            .map(|message| FactoryConfirm {
-                message,
-                scroll: 0,
-                batch,
-                local: None,
-            });
         None
+    }
+
+    /// The Slack confirm for `message`, unless Slack would refuse its length.
+    fn confirm_slack(&mut self, message: Option<Message>, batch: bool, draft: Option<String>) {
+        let Some(message) = message else { return };
+        if let Some(why) = message.too_long() {
+            self.flash = Some(why);
+            return;
+        }
+        self.factory_confirm = Some(FactoryConfirm {
+            message,
+            scroll: 0,
+            batch,
+            local: None,
+            draft,
+        });
+    }
+
+    pub fn with_drafts(mut self, dir: PathBuf) -> Self {
+        self.drafts_dir = Some(dir);
+        self.load_drafts();
+        self
+    }
+
+    /// Re-reads the drafts dir; true when the list changed.
+    pub fn load_drafts(&mut self) -> bool {
+        let Some(dir) = &self.drafts_dir else {
+            return false;
+        };
+        let drafts = drafts::list(dir);
+        if drafts == self.drafts {
+            return false;
+        }
+        self.drafts = drafts;
+        let last = self.factory_rows().len().saturating_sub(1);
+        self.factory_selected = self.factory_selected.min(last);
+        true
+    }
+
+    fn remove_draft(&mut self, id: &str) {
+        if let Some(dir) = &self.drafts_dir {
+            if let Err(err) = drafts::remove(dir, id) {
+                self.flash = Some(format!("draft: {err:#}"));
+            }
+        }
+        self.load_drafts();
     }
 
     /// Opens the confirm for a local agent on `pr` with `body` as its prompt.
@@ -348,6 +400,7 @@ impl App {
             scroll: 0,
             batch: false,
             local: Some(pr),
+            draft: None,
         });
     }
 
@@ -454,11 +507,18 @@ impl App {
                     });
                 }
                 self.factory_batch = c.batch;
+                self.factory_draft = c.draft;
                 self.pending = Some("posting to Slack…".into());
                 Some(Command::FactorySend { message: c.message })
             }
             KeyCode::Char('n') | KeyCode::Esc => {
                 self.factory_confirm = None;
+                None
+            }
+            KeyCode::Char('d') if confirm.draft.is_some() => {
+                let id = self.factory_confirm.take()?.draft?;
+                self.remove_draft(&id);
+                self.flash = self.flash.take().or(Some("draft discarded".into()));
                 None
             }
             KeyCode::Char('j') | KeyCode::Down => {
@@ -496,30 +556,16 @@ impl App {
                     }
                     (_, Some((pr, false))) => {
                         if self.factory_ready() {
-                            self.factory_confirm =
-                                self.factory.compose_about(&text, &pr.url).map(|message| {
-                                    FactoryConfirm {
-                                        message,
-                                        scroll: 0,
-                                        batch: false,
-                                        local: None,
-                                    }
-                                });
+                            let message = self.factory.compose_about(&text, &pr.url);
+                            self.confirm_slack(message, false, None);
                         }
                         None
                     }
                     (Some(prompt), None) => self.open_factory(&prompt, &[text], false),
                     (None, None) => {
                         if self.factory_ready() {
-                            self.factory_confirm =
-                                self.factory
-                                    .compose_message(&text)
-                                    .map(|message| FactoryConfirm {
-                                        message,
-                                        scroll: 0,
-                                        batch: false,
-                                        local: None,
-                                    });
+                            let message = self.factory.compose_message(&text);
+                            self.confirm_slack(message, false, None);
                         }
                         None
                     }
@@ -565,7 +611,10 @@ impl App {
     /// The Factory tab's rows: a typed message, then every prompt it can
     /// send. The batch prompt needs marked issues, so it only lives on Issues.
     pub fn factory_rows(&self) -> Vec<FactoryRow<'_>> {
-        std::iter::once(FactoryRow::Message)
+        self.drafts
+            .iter()
+            .map(FactoryRow::Draft)
+            .chain(std::iter::once(FactoryRow::Message))
             .chain(
                 self.factory
                     .prompts
@@ -589,6 +638,14 @@ impl App {
             }
             KeyCode::Enter => {
                 let prompt = match self.factory_rows().get(self.factory_selected)? {
+                    FactoryRow::Draft(d) => {
+                        let (id, text) = (d.id.clone(), d.text.clone());
+                        if self.factory_ready() {
+                            let message = self.factory.compose_draft(&text);
+                            self.confirm_slack(message, false, Some(id));
+                        }
+                        return None;
+                    }
                     FactoryRow::Message => None,
                     FactoryRow::Prompt(p) => Some((*p).clone()),
                 };
@@ -1056,6 +1113,9 @@ impl App {
                     self.marks.clear();
                 }
                 self.factory_batch = false;
+                if let Some(id) = self.factory_draft.take().filter(|_| sent) {
+                    self.remove_draft(&id);
+                }
             }
         }
         self.state = state;
@@ -2024,7 +2084,14 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
         } else {
             fg(theme().subtext)
         };
-        spans.push(Span::styled(format!(" {} {} ", i + 1, t.label()), style));
+        let count = match (t, app.drafts.len()) {
+            (Tab::Factory, n) if n > 0 => format!(" ({n})"),
+            _ => String::new(),
+        };
+        spans.push(Span::styled(
+            format!(" {} {}{count} ", i + 1, t.label()),
+            style,
+        ));
     }
     spans.push(Span::styled(
         match app.state.agents.len() {
@@ -2142,6 +2209,18 @@ pub fn draw(frame: &mut Frame, app: &App, now_ms: u64) {
         }
         _ if app.reply.is_some() => &[("⏎", "send"), ("alt+⏎", "newline"), ("esc", "drop")],
         _ if app.picker.is_some() => &[("jk", "move"), ("⏎", "set"), ("esc", "cancel")],
+        _ if app
+            .factory_confirm
+            .as_ref()
+            .is_some_and(|c| c.draft.is_some()) =>
+        {
+            &[
+                ("y", "send"),
+                ("d", "discard"),
+                ("n", "keep"),
+                ("jk", "scroll"),
+            ]
+        }
         _ if app.factory_confirm.is_some() => &[("y", "send"), ("n", "cancel"), ("jk", "scroll")],
         _ if app.pr_pick.is_some() => &[("jk", "pick"), ("⏎", "next"), ("esc", "cancel")],
         _ if app
@@ -2303,15 +2382,17 @@ pub fn help_lines(tab: Tab, herdr: &[(String, String)]) -> Vec<Line<'static>> {
         ),
         Tab::Factory => (
             &[
-                "Prompts for Factory, posted to Slack as you. Message lets you write",
-                "your own. Prompts about an issue or PR ask for its URL. Every post",
-                "shows the exact text first and only goes out on y.",
+                "Prompts for Factory, posted to Slack as you. Drafts come first:",
+                "messages agents saved with `werkbank factory draft`. Message lets",
+                "you write your own. Prompts about an issue or PR ask for its URL.",
+                "Every post shows the exact text first and only goes out on y.",
             ],
             &[],
             &[
                 ("j k", "move"),
-                ("⏎", "use the prompt"),
+                ("⏎", "open the draft or use the prompt"),
                 ("y n", "send or cancel in the preview"),
+                ("d", "discard the draft in its preview"),
             ],
         ),
     };
@@ -2534,7 +2615,16 @@ fn draw_factory(frame: &mut Frame, app: &App, area: Rect) {
     let items: Vec<ListItem> = rows
         .iter()
         .map(|row| {
+            if let FactoryRow::Draft(d) = row {
+                let first = d.text.lines().next().unwrap_or_default();
+                return ListItem::new(Line::from(vec![
+                    Span::styled("Draft ", fg(theme().accent).add_modifier(Modifier::BOLD)),
+                    Span::styled(format!("from {}  ", d.from), dim()),
+                    Span::styled(first.to_string(), fg(theme().text)),
+                ]));
+            }
             let (name, note) = match row {
+                FactoryRow::Draft(_) => unreachable!("drawn above"),
                 FactoryRow::Message => ("Message", "  type anything"),
                 FactoryRow::Prompt(p) if p.needs_ref() => (p.name.as_str(), "  asks for a URL"),
                 FactoryRow::Prompt(p) => (p.name.as_str(), ""),
@@ -2558,6 +2648,7 @@ fn draw_factory(frame: &mut Frame, app: &App, area: Rect) {
     );
     if let Some(row) = rows.get(app.factory_selected) {
         let preview = match row {
+            FactoryRow::Draft(d) => d.text.as_str(),
             FactoryRow::Message => "Your own words, sent as-is with the mention and signature.",
             FactoryRow::Prompt(p) => p.text.as_str(),
         };
@@ -2949,14 +3040,22 @@ pub fn run_inbox(paths: Paths) -> Result<()> {
     // A paste arrives as one event, so its newlines and letters are text, not keys.
     let _ = crossterm::execute!(std::io::stdout(), crossterm::event::EnableBracketedPaste);
     let mut app = App::new().with_factory(Factory::load(), slack.is_some());
+    if let Some(dir) = std::env::var_os("HERDR_PLUGIN_CONFIG_DIR") {
+        app = app.with_drafts(drafts::dir(std::path::Path::new(&dir)));
+    }
     let result = (|| -> Result<()> {
         // Redraw on new state, input, resize, or when the footer's seconds tick over.
         let mut dirty = true;
         let mut drawn_at = Instant::now();
+        let mut drafts_at = Instant::now();
         loop {
             while let Ok(state) = rx.try_recv() {
                 app.apply(state);
                 dirty = true;
+            }
+            if drafts_at.elapsed() >= Duration::from_secs(1) {
+                dirty |= app.load_drafts();
+                drafts_at = Instant::now();
             }
             if dirty || drawn_at.elapsed() >= Duration::from_secs(1) {
                 terminal.draw(|f| draw(f, &app, unix_ms()))?;
@@ -5111,5 +5210,98 @@ mod tests {
         );
         let shown: String = buf.content().iter().map(|c| c.symbol()).collect();
         assert!(!shown.chars().any(char::is_control), "{shown:?}");
+    }
+
+    fn draft_app(name: &str) -> (App, PathBuf) {
+        let dir =
+            std::env::temp_dir().join(format!("werkbank-ui-drafts-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let f = Factory::from_file(None, Some("U0FACTORY".into()));
+        drafts::save(
+            &dir,
+            &f,
+            "Shrink *core* & ship\nsecond line",
+            "explore-sizes",
+            10,
+        )
+        .unwrap();
+        let mut a = factory_ready(App::new()).with_drafts(dir.clone());
+        a.on_key(KeyCode::Char('4'));
+        (a, dir)
+    }
+
+    #[test]
+    fn a_draft_is_listed_first_and_counted_in_the_tab() {
+        let (a, dir) = draft_app("list");
+        assert!(matches!(a.factory_rows()[0], FactoryRow::Draft(_)));
+        let text = render_h(&a, 20).join("\n");
+        assert!(text.contains("4 Factory (1)"), "{text}");
+        assert!(
+            text.contains("Draft from explore-sizes  Shrink *core* & ship"),
+            "{text}"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_draft_posts_escaped_after_y_and_is_deleted_only_once_sent() {
+        let (mut a, dir) = draft_app("send");
+        assert_eq!(a.on_key(KeyCode::Enter), None);
+        let message = a.factory_confirm.as_ref().unwrap().message.clone();
+        assert_eq!(
+            message.body,
+            "<@U0FACTORY> Shrink *core* &amp; ship\nsecond line"
+        );
+        let text = render_h(&a, 20).join("\n");
+        assert!(
+            text.contains("Shrink *core* & ship"),
+            "preview unescapes: {text}"
+        );
+        assert!(text.contains("discard"), "{text}");
+        assert_eq!(
+            a.on_key(KeyCode::Char('y')),
+            Some(Command::FactorySend { message })
+        );
+        sent(&mut a, 1, false);
+        assert_eq!(a.drafts.len(), 1, "a failed post keeps the draft");
+        assert_eq!(drafts::list(&dir).len(), 1);
+        a.on_key(KeyCode::Enter);
+        a.on_key(KeyCode::Char('y'));
+        sent(&mut a, 2, true);
+        assert!(a.drafts.is_empty());
+        assert!(drafts::list(&dir).is_empty());
+        assert_eq!(a.factory_rows()[0], FactoryRow::Message);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn d_in_a_draft_preview_discards_it_without_posting() {
+        let (mut a, dir) = draft_app("discard");
+        a.on_key(KeyCode::Enter);
+        assert_eq!(a.on_key(KeyCode::Char('d')), None);
+        assert!(a.factory_confirm.is_none());
+        assert!(drafts::list(&dir).is_empty());
+        assert_eq!(a.flash.as_deref(), Some("draft discarded"));
+        // `d` means nothing in an ordinary confirm.
+        a.on_key(KeyCode::Enter);
+        for c in "hi".chars() {
+            a.on_key(KeyCode::Char(c));
+        }
+        a.on_key(KeyCode::Enter);
+        assert_eq!(a.on_key(KeyCode::Char('d')), None);
+        assert!(a.factory_confirm.is_some());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_message_over_slacks_limit_never_reaches_the_confirm() {
+        let mut a = factory_ready(App::new());
+        a.on_key(KeyCode::Char('4'));
+        a.on_key(KeyCode::Enter);
+        a.on_paste(&"a".repeat(3500));
+        assert_eq!(a.on_key(KeyCode::Enter), None);
+        assert!(a.factory_confirm.is_none());
+        let flash = a.flash.clone().unwrap();
+        assert!(flash.contains("the limit is 3000"), "{flash}");
     }
 }

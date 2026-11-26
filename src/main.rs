@@ -7,7 +7,7 @@ use std::process::ExitCode;
 use crate::core::env;
 use crate::core::herdr::Herdr;
 use crate::core::runner::RealRunner;
-use crate::features::{daemon, inbox, launch::presets, setup};
+use crate::features::{daemon, factory, inbox, launch::presets, setup};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -36,9 +36,10 @@ fn main() -> ExitCode {
         "worktree-created" => setup::run_hook(),
         "setup-worktree" => setup::run_action(),
         "setup-run" => setup::run_setup(&args[1..]),
+        "factory" => factory::drafts::run(&args[1..]),
         _ => {
             eprintln!(
-                "usage: werkbank <inbox|open-inbox|status|launch-tab|launch-worktree|worktree-prompt|daemon|daemon-start|worktree-created|setup-worktree|setup-run>"
+                "usage: werkbank <inbox|open-inbox|status|launch-tab|launch-worktree|worktree-prompt|daemon|daemon-start|worktree-created|setup-worktree|setup-run|factory>"
             );
             return ExitCode::from(2);
         }

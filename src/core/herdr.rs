@@ -195,6 +195,17 @@ impl<R: Runner> Herdr<R> {
             .ok_or_else(|| anyhow!("herdr session {session} is not running"))
     }
 
+    /// Where Herdr keeps `plugin`'s config, for a command run outside a
+    /// plugin context (no `$HERDR_PLUGIN_CONFIG_DIR`).
+    pub fn plugin_config_dir(&self, plugin: &str) -> Result<std::path::PathBuf> {
+        let out = self.raw(&["plugin", "config-dir", plugin])?;
+        let dir = out.stdout.trim();
+        if dir.is_empty() {
+            bail!("herdr plugin config-dir {plugin} printed nothing");
+        }
+        Ok(dir.into())
+    }
+
     pub fn agent_list(&self) -> Result<Vec<AgentInfo>> {
         field(self.json(&["agent", "list"])?, "agents")
     }
@@ -995,6 +1006,24 @@ mod tests {
             std::path::Path::new("/h/work.sock")
         );
         assert!(herdr().socket_path().is_err(), "never the default session");
+    }
+
+    #[test]
+    fn plugin_config_dir_is_the_printed_path() {
+        let h = Herdr::with_bin(FakeRunner::new(), "herdr");
+        h.runner.ok(
+            &["herdr", "plugin", "config-dir", "werkbank"],
+            None,
+            "/h/config/werkbank\n",
+        );
+        assert_eq!(
+            h.plugin_config_dir("werkbank").unwrap(),
+            std::path::Path::new("/h/config/werkbank")
+        );
+        let h = Herdr::with_bin(FakeRunner::new(), "herdr");
+        h.runner
+            .ok(&["herdr", "plugin", "config-dir", "werkbank"], None, "\n");
+        assert!(h.plugin_config_dir("werkbank").is_err());
     }
 
     #[test]
